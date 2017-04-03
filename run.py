@@ -247,6 +247,7 @@ if __name__ == '__main__':
         driver.delete_all_cookies()
         if print_col:
             driver.quit()
+            sys.exit(0)
 
     for c in college:
         for _ in range(3):
