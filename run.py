@@ -171,22 +171,19 @@ def _move_file(source, dest):
         logger.warning("failed to delete file: {}".format(DOWNLOADED))
 
 
-def _wait_until_loaded(wait_to_load):
-
-    wait_time = wait_to_load
+def _wait_until_loaded(wait_):
 
     try:
         for _ in range(10):
             el = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'ASPxRoundPanel3_ASPxPivotGrid1_TL')))
+            time.sleep(1)
             if el.is_displayed():
                 logger.info('loading data')
                 break
-            else:
-                time.sleep(1)
         else:
             logger.warning('loading data element not displaying')
 
-        for _ in range(wait_time):
+        for _ in range(wait_):
             el = driver.find_element_by_id('ASPxRoundPanel3_ASPxPivotGrid1_TL')
             if not el.is_displayed():
                 sys.stdout.write('\n')
