@@ -259,7 +259,7 @@ if __name__ == '__main__':
         elif opt in ("-s", "--screen-capture"):
             screen_cap = True
         elif opt in ("-r", "--retry"):
-            screen_cap = True
+            retry = int(arg)
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
