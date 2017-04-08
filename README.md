@@ -3,9 +3,9 @@
 * -c, --college : pass in the college id. e.g. -c 1,2 - scrape college no 1 and college no 2.
 
 To scrape all colleges pass in: 
-**-c all**
+**-c all** or don't do **-c** at all
 </br>
-How to get college ids, it's as simply as running the script with this argument:
+How to get college ids, it's as simple as running the script with this argument:
 **--print-college**
 </br>
 * -s, --screen-capture : to save a screenshot of the browser before the csv file is downloaded
