@@ -2,4 +2,5 @@ download/*
 !download/.gitkeep
 .pyc
 .idea
-.log
+logs/*
+!logs/.gitkeep

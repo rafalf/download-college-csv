@@ -16,54 +16,71 @@ from selenium.webdriver.support.select import Select
 from selenium.common.exceptions import StaleElementReferenceException
 import platform
 from shutil import copyfile
+import csv
 
 scrape_url = 'http://datamart.cccco.edu/Outcomes/Course_Ret_Success.aspx'
 logger = logging.getLogger(os.path.basename(__file__))
 
 DOWNLOADED = 'CourseRetSuccessSumm.csv'
-
-# driver
-if platform.system() == 'Darwin':
-    driver = webdriver.Chrome()
-else:
-    driver_path = os.path.join(os.path.dirname(__file__), 'chromedriver.exe')
-
-    chromeOptions = webdriver.ChromeOptions()
-    down_path = os.path.join(os.path.dirname(__file__), 'download')
-    prefs = {"download.default_directory": down_path}
-    chromeOptions.add_experimental_option("prefs", prefs)
-    driver = webdriver.Chrome(executable_path=driver_path, chrome_options=chromeOptions)
-
-driver.maximize_window()
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOWN_PATH = os.path.join(FILE_DIR, 'download')
 
 
-def scrape(college, wait_to_load, screen_cap):
+def get_driver():
+    # driver
+    if platform.system() == 'Darwin':
+        driver = webdriver.Chrome()
+    else:
+        driver_path = os.path.join(os.path.dirname(__file__), 'chromedriver.exe')
+
+        chromeOptions = webdriver.ChromeOptions()
+        prefs = {"download.default_directory": DOWN_PATH}
+        chromeOptions.add_experimental_option("prefs", prefs)
+
+        driver = webdriver.Chrome(executable_path=driver_path, chrome_options=chromeOptions)
+    driver.maximize_window()
 
     driver.get(scrape_url)
     logger.info('url opened : {}'.format(scrape_url))
+    return driver
+
+
+def scrape(college, wait_to_load, screen_cap, driver):
 
     wait = WebDriverWait(driver, 10)
 
-    # state district college
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBI2T0'))).click()
+    for counter in range(5):
 
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditDistColl'))).click()
+        try:
+            driver.refresh()
 
-    # college
-    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.dxeListBoxItemRow_Aqua')))
-    time.sleep(5)
+            # state district college
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC'))).click()
+            time.sleep(2)
+            distr_id = 'ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBI2T0'
+            wait.until(EC.element_to_be_clickable((By.ID, distr_id)))
 
-    college_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
-    js_script = "document.getElementById('{}').click();".format(college_id)
-    driver.execute_script(js_script)
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBT tr:nth-of-type(3)'))).click()
+            time.sleep(2)
+
+            # college
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditDistColl'))).click()
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.dxeListBoxItemRow_Aqua')))
+
+            college_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
+            wait.until(EC.presence_of_element_located((By.ID, college_id)))
+            js_script = "document.getElementById('{}').click();".format(college_id)
+            driver.execute_script(js_script)
+            break
+        except:
+            logger.info('Failed. Will retry up to 5 times to select the college --> ({})'.format(counter))
 
     el_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
     el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
     logger.info("Selected college: ({}): {}".format(college, el.text))
     college_name = el.text
 
-    down_college_specific = os.path.join(down_path, college_name)
+    down_college_specific = os.path.join(DOWN_PATH, college_name)
     if not os.path.isdir(down_college_specific):
         os.mkdir(down_college_specific)
         logger.info("Created folder: {}".format(down_college_specific))
@@ -87,7 +104,7 @@ def scrape(college, wait_to_load, screen_cap):
     # click view report
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD'))).click()
 
-    _wait_until_loaded(wait_to_load)
+    _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
 
     # click checkboxes
@@ -98,7 +115,7 @@ def scrape(college, wait_to_load, screen_cap):
     # click update report
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
 
-    _wait_until_loaded(wait_to_load)
+    _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
 
     # click csv
@@ -107,23 +124,27 @@ def scrape(college, wait_to_load, screen_cap):
     if screen_cap:
         driver.save_screenshot(os.path.join(down_college_specific, college_name.lower() + ".png"))
 
+    time.sleep(5)
+
     # click export as
-    logger.info('click export to csv ... browser starts downloading')
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD'))).click()
+    logger.info('click export to csv --> browser starts downloading')
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')), message='element not clickable').click()
 
-    _move_file(down_path, down_college_specific)
+    _move_file(DOWN_PATH, down_college_specific)
+
+    return college_name
 
 
-def print_all_colleges():
-
-    driver.get(scrape_url)
-    logger.info('url opened : {}'.format(scrape_url))
+def print_all_colleges(driver):
 
     wait = WebDriverWait(driver, 10)
 
     # state district college
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBI2T0'))).click()
+    time.sleep(2)
+    wait.until(EC.element_to_be_clickable(
+        (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBT tr:nth-of-type(3)'))).click()
+    time.sleep(2)
 
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditDistColl'))).click()
 
@@ -147,7 +168,7 @@ def print_all_colleges():
 def _move_file(source, dest):
 
     logger.info('checking downloaded file')
-    for _ in range(30):
+    for _ in range(60):
         files_ = os.listdir(source)
         if DOWNLOADED in files_:
             sys.stdout.write('\n')
@@ -158,20 +179,22 @@ def _move_file(source, dest):
             sys.stdout.write('.')
             sys.stdout.flush()
             time.sleep(1)
+    else:
+        logger.warning("file not downloaded".format(DOWNLOADED))
+        raise Exception('file not downloaded')
+
     try:
         copyfile(os.path.join(source, DOWNLOADED), os.path.join(dest, DOWNLOADED))
-        logger.info('copied as: ' + os.path.join(dest, DOWNLOADED))
-    except:
-        logger.warning("failed to copy file".format(DOWNLOADED))
+        logger.info('copied as: {}'.format(os.path.join(dest, DOWNLOADED)))
 
-    try:
         os.remove(os.path.join(source, DOWNLOADED))
-        logger.info('deleted as: ' + os.path.join(source, DOWNLOADED))
+        logger.info('deleted: {}'.format(os.path.join(source, DOWNLOADED)))
     except:
-        logger.warning("failed to delete file: {}".format(DOWNLOADED))
+        logger.warning("failed to copy, delete file: {}".format(DOWNLOADED))
+        raise Exception('failed to copy, delete file')
 
 
-def _wait_until_loaded(wait_):
+def _wait_until_loaded(wait_, driver):
 
     try:
         for _ in range(10):
@@ -198,15 +221,23 @@ def _wait_until_loaded(wait_):
         logger.warning('loading data element not displaying')
 
 
+def _write_row(row):
+    with open('./logs/scraped.csv', 'ab') as hlr:
+        wrt = csv.writer(hlr, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+        wrt.writerow(row)
+        logger.info('added to scraped.csv file: {}'.format(row))
+
+
 if __name__ == '__main__':
-    dwn_folder = None
     verbose = None
     log_file = None
     college = None
     print_col = None
     screen_cap = None
     wait_to_load = 3600
-    college = ['1']
+    college = "all"
+    scraped_college = 'Unknown'
+    retry = 3
 
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
@@ -214,7 +245,8 @@ if __name__ == '__main__':
     console.setFormatter(ch)
 
     argv = sys.argv[1:]
-    opts, args = getopt.getopt(argv, "vw:lpt", ["verbose", "college=", 'log-file', 'print-college', 'tree'])
+    opts, args = getopt.getopt(argv, "vc:lpsr:", ["verbose", "college=", 'log-file', 'print-college',
+                                                  'screen-capture', "retry="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -224,9 +256,9 @@ if __name__ == '__main__':
             log_file = True
         elif opt in ("-p", "--print-college"):
             print_col = True
-        elif opt in ("-w", "--wait-to-load"):
-            wait_to_load = int(arg)
-        elif opt in ("-t", "--tree"):
+        elif opt in ("-s", "--screen-capture"):
+            screen_cap = True
+        elif opt in ("-r", "--retry"):
             screen_cap = True
 
     if log_file:
@@ -241,30 +273,42 @@ if __name__ == '__main__':
     else:
         logger.setLevel(logging.getLevelName('INFO'))
     logger.info('CLI args: {}'.format(opts))
+    logger.info('Variables:' )
+    logger.info('FILE_DIR: {}'.format(FILE_DIR))
+    logger.info('DOWN_PATH: {}'.format(DOWN_PATH))
 
     if college == 'all' or print_col:
-        college = print_all_colleges()
-        driver.delete_all_cookies()
+        driver = get_driver()
+        college = print_all_colleges(driver)
+        driver.quit()
         if print_col:
-            driver.quit()
             sys.exit(0)
 
     for c in college:
-        for _ in range(3):
+        for _ in range(retry):
             try:
-                scrape(c, wait_to_load, screen_cap)
-                logger.info('Completed for college no.{}'.format(c))
+                if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
+                    os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
+
+                driver = get_driver()
+                driver.set_page_load_timeout(3600)
+
+                scraped_college = scrape(c, wait_to_load, screen_cap, driver)
+                logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
+                result = 'Complete'
                 break
             except TimeoutException:
-                logger.warning('TimeoutException... will retry up to 3 times')
+                logger.warning('TimeoutException. Will retry up to 3 times')
                 logger.debug('err: ', exc_info=True)
+                result = 'TimeoutException'
             except StaleElementReferenceException:
-                logger.warning('StaleElementReferenceException...  will retry up to 3 times')
+                logger.warning('StaleElementReferenceException. Will retry up to 3 times')
                 logger.debug('err: ', exc_info=True)
+                result = 'StaleElementReferenceException'
             except:
-                logger.warning('Undefined exception...  will retry up to 3 times')
+                logger.warning('UndefinedException. Will retry up to 3 times')
                 logger.debug('err: ', exc_info=True)
+                result = 'UndefinedException'
             finally:
-                driver.delete_all_cookies()
-
-    driver.quit()
+                _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), result, c, scraped_college])
+                driver.quit()
