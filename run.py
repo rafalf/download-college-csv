@@ -14,6 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import UnexpectedAlertPresentException
 import platform
 from shutil import copyfile
 import csv
@@ -22,6 +23,7 @@ scrape_url = 'http://datamart.cccco.edu/Outcomes/Course_Ret_Success.aspx'
 logger = logging.getLogger(os.path.basename(__file__))
 
 DOWNLOADED = 'CourseRetSuccessSumm.csv'
+DOWNLOADED_PARTIAL = 'CourseRetSuccessSumm.csv.crdownload'
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWN_PATH = os.path.join(FILE_DIR, 'download')
 
@@ -35,6 +37,8 @@ def get_driver():
 
         chromeOptions = webdriver.ChromeOptions()
         prefs = {"download.default_directory": DOWN_PATH}
+        prefs["credentials_enable_service"] = False
+        prefs["password_manager_enabled"] = False
         chromeOptions.add_experimental_option("prefs", prefs)
 
         driver = webdriver.Chrome(executable_path=driver_path, chrome_options=chromeOptions)
@@ -241,7 +245,7 @@ if __name__ == '__main__':
 
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
-    ch = logging.Formatter('[%(levelname)s] %(message)s')
+    ch = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     console.setFormatter(ch)
 
     argv = sys.argv[1:]
@@ -272,10 +276,12 @@ if __name__ == '__main__':
         logger.setLevel(logging.getLevelName('DEBUG'))
     else:
         logger.setLevel(logging.getLevelName('INFO'))
+
     logger.info('CLI args: {}'.format(opts))
     logger.info('Variables:' )
     logger.info('FILE_DIR: {}'.format(FILE_DIR))
     logger.info('DOWN_PATH: {}'.format(DOWN_PATH))
+    logger.info('RETRY: {}'.format(retry))
 
     if college == 'all' or print_col:
         driver = get_driver()
@@ -289,6 +295,10 @@ if __name__ == '__main__':
             try:
                 if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
                     os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
+                    logger.info('Deleted: {}'.format(DOWNLOADED))
+                if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL)):
+                    os.remove(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL))
+                    logger.info('Deleted: {}'.format(DOWNLOADED_PARTIAL))
 
                 driver = get_driver()
                 driver.set_page_load_timeout(3600)
@@ -298,17 +308,22 @@ if __name__ == '__main__':
                 result = 'Complete'
                 break
             except TimeoutException:
-                logger.warning('TimeoutException. Will retry up to 3 times')
+                logger.warning('TimeoutException. Will retry up to {} times'.format(retry))
                 logger.debug('err: ', exc_info=True)
                 result = 'TimeoutException'
             except StaleElementReferenceException:
-                logger.warning('StaleElementReferenceException. Will retry up to 3 times')
+                logger.warning('StaleElementReferenceException. Will retry up to {} times'.format(retry))
                 logger.debug('err: ', exc_info=True)
                 result = 'StaleElementReferenceException'
+            except UnexpectedAlertPresentException:
+                logger.warning('UnexpectedAlertPresentException. Will retry up to {} times'.format(retry))
+                logger.debug('err: ', exc_info=True)
+                result = 'UnexpectedAlertPresentException'
             except:
-                logger.warning('UndefinedException. Will retry up to 3 times')
+                logger.warning('UndefinedException. Will retry up to {} times'.format(retry))
                 logger.debug('err: ', exc_info=True)
                 result = 'UndefinedException'
             finally:
                 _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), result, c, scraped_college])
+                driver.close()
                 driver.quit()
