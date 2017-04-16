@@ -202,11 +202,15 @@ def _wait_until_loaded(wait_, driver):
 
     try:
         for _ in range(10):
-            el = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'ASPxRoundPanel3_ASPxPivotGrid1_TL')))
-            time.sleep(1)
-            if el.is_displayed():
-                logger.info('loading data')
-                break
+            
+            try:
+                el = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'ASPxRoundPanel3_ASPxPivotGrid1_TL')))
+                time.sleep(1)
+                if el.is_displayed():
+                    logger.info('loading data')
+                    break
+            except StaleElementReferenceException:
+                logger.info('_wait_until_loaded: StaleElementReferenceException')
         else:
             logger.warning('loading data element not displaying')
 
