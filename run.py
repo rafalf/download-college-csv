@@ -106,7 +106,10 @@ def scrape(college, wait_to_load, screen_cap, driver):
     wait.until(EC.element_to_be_clickable((By.ID, instruction_id))).click()
 
     # click view report
-    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD'))).click()
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
+    js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();".format(type_id)
+    driver.execute_script(js_script)
+    logger.info('view report clicked')
 
     _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
@@ -115,15 +118,19 @@ def scrape(college, wait_to_load, screen_cap, driver):
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_TopOptions_0'))).click()
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_TopOptions_1'))).click()
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_TopOptions_2'))).click()
+    logger.info('Checkboxes selected')
 
     # click update report
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
+    logger.info('update selected')
 
     _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
 
     # click csv
+    logger.info('About to click export to csv')
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
+    logger.info('export to csv clicked')
 
     if screen_cap:
         driver.save_screenshot(os.path.join(down_college_specific, college_name.lower() + ".png"))
@@ -202,7 +209,7 @@ def _wait_until_loaded(wait_, driver):
 
     try:
         for _ in range(10):
-            
+
             try:
                 el = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'ASPxRoundPanel3_ASPxPivotGrid1_TL')))
                 time.sleep(1)
