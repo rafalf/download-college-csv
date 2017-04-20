@@ -693,30 +693,43 @@ if __name__ == '__main__':
         for c in college:
             for _ in range(retry):
                 try:
+                    # -------------------------------------------------------
+                    # clean up
+                    # -------------------------------------------------------
                     if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
                         os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
                         logger.info('Deleted: {}'.format(DOWNLOADED))
                     if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL)):
                         os.remove(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL))
                         logger.info('Deleted: {}'.format(DOWNLOADED_PARTIAL))
+                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT)):
+                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT))
+                        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT))
+                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL)):
+                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL))
+                        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT_PARTIAL))
 
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
+
+                    # -------------------------------------------------------
+                    # scrape
+                    # -------------------------------------------------------
 
                     scraped_college = scrape_cohort(c, screen_cap, driver, cohort_term, end_term)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
                 except TimeoutException:
-                    logger.warning('TimeoutException. Will retry up to {} times'.format(retry))
+                    logger.warning('TimeoutException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
                     result = 'TimeoutException'
                 except StaleElementReferenceException:
-                    logger.warning('StaleElementReferenceException. Will retry up to {} times'.format(retry))
+                    logger.warning('StaleElementReferenceException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
                     result = 'StaleElementReferenceException'
                 except UnexpectedAlertPresentException:
-                    logger.warning('UnexpectedAlertPresentException. Will retry up to {} times'.format(retry))
+                    logger.warning('UnexpectedAlertPresentException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
                     result = 'UnexpectedAlertPresentException'
                 except ExitException:
@@ -726,7 +739,7 @@ if __name__ == '__main__':
                     result = 'ExitException: Data not available'
                     sys.exit(0)
                 except:
-                    logger.warning('UndefinedException. Will retry up to {} times'.format(retry))
+                    logger.warning('UndefinedException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
                     result = 'UndefinedException'
                 finally:
