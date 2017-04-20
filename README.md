@@ -1,3 +1,4 @@
+# Scrape college:
 ## arguments:
 * -v, --verbose : to run in the verbose mode (debug logger)
 * -c, --college : pass in the college id. e.g. -c 1,2 - scrape college no 1 and college no 2.
@@ -24,3 +25,15 @@ retry up 10 times to scrape data and save a screencap right before the export to
 ```python run.py -c 15``` - scrape the college with an id of 15
 </br>
 ```pyton run.py -print-college -l``` - open up the url, get the list of all colleges and print it out
+
+# Scrape cohort:
+## arguments: 
+As before however 2 new arguments are introduced to narrow down search criteria:
+* --cohort-term 
+* --end-term
+</br></br>
+* -u, --url : must be set to: cohort
+
+
+## Example:
+``` python run -u cohort -c 8 --cohort-term "Summer 2009" --end-term "Winter 2017" -s ```
