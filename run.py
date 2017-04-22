@@ -370,7 +370,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')),
                                message='element not clickable').click()
 
-                    file_name = file_part_skill + "-" + file_part_level + '.csv'
+                    file_name =  cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.csv'
                     _move_file_cohort(DOWN_PATH, down_college_specific, file_name)
 
                     if screen_cap:
