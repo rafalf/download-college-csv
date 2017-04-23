@@ -270,6 +270,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
     # ----------------------------------------------------
 
     skill_scraped = []
+    level_scraped = []
 
     for _ in range(10):
 
@@ -320,8 +321,12 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
                     cohort_level = all[counter_level].text
                     file_part_level = cohort_level.strip()
 
-                    if file_part_skill == '':
+                    if file_part_level == '':
                         raise Exception('Cohort level not expanded')
+                    elif file_part_skill + " " + file_part_level in level_scraped:
+                        logger.info('level already scraped: {}'.format(file_part_level))
+                        logger.info(level_scraped)
+                        continue
 
                     logger.info('Selecting cohort level: {}'.format(file_part_level))
                     all[counter_level].click()
@@ -370,18 +375,23 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')),
                                message='element not clickable').click()
 
-                    file_name =  cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.csv'
+                    file_name = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.csv'
                     _move_file_cohort(DOWN_PATH, down_college_specific, file_name)
 
                     if screen_cap:
-                        s = file_part_skill + "-" + file_part_level + '.png'
+                        s = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.png'
                         driver.save_screenshot(os.path.join(down_college_specific, s))
+
+                    # append level scraped
+                    level_scraped.append(file_part_skill + " " + file_part_level)
+                    logger.info('add scraped level: {}'.format(file_part_skill + " " + file_part_level))
 
                     # level - all
                     wait.until(EC.element_to_be_clickable(
                         (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxPL_B-1'))).click()
                     time.sleep(2)
 
+                # append skill scraped
                 skill_scraped.append(file_part_skill)
                 logger.info('DONE: added {} to skill scraped'.format(file_part_skill))
 
@@ -395,6 +405,12 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
                     (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxBSSub_B-1'))).click()
                 time.sleep(2)
 
+        except UnexpectedAlertPresentException:
+            logger.info('UnexpectedAlertPresentException: accepting alert')
+            driver.switch_to.alert.accept()
+            level_scraped.append(file_part_skill + " " + file_part_level)
+            logger.info('add scraped level: {}'.format(file_part_skill + " " + file_part_level))
+            continue
         except:
             logger.info('Retry expand end term')
 
@@ -555,6 +571,7 @@ def _wait_until_loaded(wait_, driver):
         logger.info('loading data element not displaying')
 
 
+
 def _write_row(row):
     with open('./logs/scraped.csv', 'ab') as hlr:
         wrt = csv.writer(hlr, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
@@ -640,7 +657,7 @@ if __name__ == '__main__':
                 sys.exit(0)
 
         for c in college:
-            for _ in range(retry):
+            for retry_attempts in range(retry):
                 try:
                     if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
                         os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
@@ -657,23 +674,25 @@ if __name__ == '__main__':
                     result = 'Complete'
                     break
                 except TimeoutException:
-                    logger.warning('TimeoutException. Will retry up to {} times'.format(retry))
+                    logger.warning('TimeoutException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'TimeoutException'
+                    result = 'TimeoutException ({})'.format(retry_attempts)
                 except StaleElementReferenceException:
-                    logger.warning('StaleElementReferenceException. Will retry up to {} times'.format(retry))
+                    logger.warning('StaleElementReferenceException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'StaleElementReferenceException'
+                    result = 'StaleElementReferenceException ({})'.format(retry_attempts)
                 except UnexpectedAlertPresentException:
-                    logger.warning('UnexpectedAlertPresentException. Will retry up to {} times'.format(retry))
+                    logger.warning('UnexpectedAlertPresentException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'UnexpectedAlertPresentException'
+                    result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
                 except:
-                    logger.warning('UndefinedException. Will retry up to {} times'.format(retry))
+                    logger.warning('UndefinedException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'UndefinedException'
+                    result = 'UndefinedException ({})'.format(retry_attempts)
                 finally:
                     _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), result, c, scraped_college])
+                    if retry_attempts == retry - 1:
+                        _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), 'Failed', c, scraped_college])
                     driver.close()
                     driver.quit()
 
@@ -691,7 +710,7 @@ if __name__ == '__main__':
                 sys.exit(0)
 
         for c in college:
-            for _ in range(retry):
+            for retry_attempts in range(retry):
                 try:
                     # -------------------------------------------------------
                     # clean up
@@ -723,15 +742,15 @@ if __name__ == '__main__':
                 except TimeoutException:
                     logger.warning('TimeoutException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'TimeoutException'
+                    result = 'TimeoutException ({})'.format(retry_attempts)
                 except StaleElementReferenceException:
                     logger.warning('StaleElementReferenceException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'StaleElementReferenceException'
+                    result = 'StaleElementReferenceException ({})'.format(retry_attempts)
                 except UnexpectedAlertPresentException:
                     logger.warning('UnexpectedAlertPresentException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'UnexpectedAlertPresentException'
+                    result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
                 except ExitException:
                     logger.info('Data not available for specified college and cohort. Exit')
                     logger.debug('ExitException. Exit')
@@ -741,8 +760,10 @@ if __name__ == '__main__':
                 except:
                     logger.warning('UndefinedException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
-                    result = 'UndefinedException'
+                    result = 'UndefinedException ({})'.format(retry_attempts)
                 finally:
                     _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), result, c, scraped_college])
+                    if retry_attempts == retry - 1:
+                        _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), 'Failed', c, scraped_college])
                     driver.close()
                     driver.quit()
