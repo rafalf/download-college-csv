@@ -29,6 +29,8 @@ DOWN_PATH = os.path.join(FILE_DIR, 'download')
 DOWNLOADED_COHORT = 'BSkillsProgressTracker.csv'
 DOWNLOADED_COHORT_PARTIAL = 'BSkillsProgressTracker.csv.crdownload'
 
+LOGS = os.path.join(FILE_DIR, 'logs')
+SCRAPE_LOG = os.path.join(LOGS, 'scrape.csv')
 
 class ExitException(Exception):
     pass
@@ -573,7 +575,7 @@ def _wait_until_loaded(wait_, driver):
 
 
 def _write_row(row):
-    with open('./logs/scraped.csv', 'ab') as hlr:
+    with open(SCRAPE_LOG, 'ab') as hlr:
         wrt = csv.writer(hlr, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         wrt.writerow(row)
         logger.info('added to scraped.csv file: {}'.format(row))
