@@ -23,6 +23,7 @@ import openpyxl
 logger = logging.getLogger(os.path.basename(__file__))
 
 DOWNLOADED = 'CourseRetSuccessSumm.csv'
+DOWNLOADED_XLSX = 'CourseRetSuccessSumm.xlsx'
 DOWNLOADED_PARTIAL = 'CourseRetSuccessSumm.csv.crdownload'
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWN_PATH = os.path.join(FILE_DIR, 'download')
@@ -59,7 +60,7 @@ def get_driver(url):
     return driver
 
 
-def scrape(college, wait_to_load, screen_cap, driver):
+def scrape(college, wait_to_load, screen_cap, driver, convert):
 
     wait = WebDriverWait(driver, 10)
 
@@ -152,6 +153,10 @@ def scrape(college, wait_to_load, screen_cap, driver):
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')), message='element not clickable').click()
 
     _move_file(DOWN_PATH, down_college_specific)
+
+    if convert:
+        _convert_to_xlsx(os.path.join(down_college_specific, DOWNLOADED),
+                         os.path.join(down_college_specific, DOWNLOADED_XLSX))
 
     return college_name
 
@@ -528,6 +533,7 @@ def _convert_to_xlsx(source, destination):
         f.close()
 
         wb.save(destination)
+        logger.info('xlsx created --> {}'.format(destination))
     except:
         logger.warning("failed to convert: {}".format(source))
         raise Exception('failed to convert')
@@ -708,7 +714,7 @@ if __name__ == '__main__':
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
 
-                    scraped_college = scrape(c, wait_to_load, screen_cap, driver)
+                    scraped_college = scrape(c, wait_to_load, screen_cap, driver, convert)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
