@@ -18,6 +18,7 @@ from selenium.common.exceptions import UnexpectedAlertPresentException
 import platform
 from shutil import copyfile
 import csv
+import openpyxl
 
 logger = logging.getLogger(os.path.basename(__file__))
 
@@ -155,7 +156,7 @@ def scrape(college, wait_to_load, screen_cap, driver):
     return college_name
 
 
-def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
+def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, convert):
 
     wait = WebDriverWait(driver, 10)
     short_wait = WebDriverWait(driver, 3)
@@ -322,6 +323,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
 
                     cohort_level = all[counter_level].text
                     file_part_level = cohort_level.strip()
+                    logger.info('Cohort level: {}'.format(file_part_level))
 
                     if file_part_level == '':
                         raise Exception('Cohort level not expanded')
@@ -330,7 +332,15 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
                         logger.info(level_scraped)
                         continue
 
-                    logger.info('Selecting cohort level: {}'.format(file_part_level))
+                    # cohort-level passed in
+                    if level:
+                        if file_part_level != level:
+                            logger.info('Cohort level not matching: {} != {}'.format(level, cohort_level))
+                            continue
+                        else:
+                            logger.info('Cohort level found match: {}'.format(level))
+
+                    logger.info('Select cohort level: {}'.format(file_part_level))
                     all[counter_level].click()
 
                     # click view report
@@ -379,6 +389,11 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term):
 
                     file_name = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.csv'
                     _move_file_cohort(DOWN_PATH, down_college_specific, file_name)
+
+                    if convert:
+                        file_name_xlsx = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.xlsx'
+                        _convert_to_xlsx(os.path.join(down_college_specific, file_name),
+                                         os.path.join(down_college_specific, file_name_xlsx))
 
                     if screen_cap:
                         s = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.png'
@@ -500,6 +515,24 @@ def _move_file(source, dest):
         raise Exception('failed to copy, delete file')
 
 
+def _convert_to_xlsx(source, destination):
+
+    try:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+
+        f = open(source)
+        reader = csv.reader(f, delimiter=',')
+        for row in reader:
+            ws.append(row)
+        f.close()
+
+        wb.save(destination)
+    except:
+        logger.warning("failed to convert: {}".format(source))
+        raise Exception('failed to convert')
+
+
 def _move_file_cohort(source, dest, file_name):
 
     logger.info('checking downloaded file')
@@ -573,9 +606,8 @@ def _wait_until_loaded(wait_, driver):
         logger.info('loading data element not displaying')
 
 
-
 def _write_row(row):
-    with open(SCRAPE_LOG, 'ab') as hlr:
+    with open(SCRAPE_LOG, 'a') as hlr:
         wrt = csv.writer(hlr, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         wrt.writerow(row)
         logger.info('added to scraped.csv file: {}'.format(row))
@@ -595,6 +627,8 @@ if __name__ == '__main__':
     scrape_page = 'course'
     cohort_term = None
     end_term = None
+    level = None
+    convert = None
 
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
@@ -603,7 +637,8 @@ if __name__ == '__main__':
 
     argv = sys.argv[1:]
     opts, args = getopt.getopt(argv, "vc:lpsr:u:", ["verbose", "college=", 'log-file', 'print-college',
-                                                  'screen-capture', "retry=", "url=", "cohort-term=", "end-term="])
+                                                    'screen-capture', "retry=", "url=", "cohort-term=", "end-term=",
+                                                    'level=', 'convert'])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -621,10 +656,14 @@ if __name__ == '__main__':
             if arg  == 'cohort':
                 scrape_url = 'http://datamart.cccco.edu/Outcomes/BasicSkills_Cohort_Tracker.aspx'
                 scrape_page = 'cohort'
-        elif opt in ("--cohort-term"):
+        elif opt in "--cohort-term":
             cohort_term = arg
-        elif opt in ("--end-term"):
+        elif opt in "--end-term":
             end_term = arg
+        elif opt in "--level":
+            level = arg
+        elif opt in "--convert":
+            convert = True
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -640,10 +679,8 @@ if __name__ == '__main__':
 
     logger.info('CLI args: {}'.format(opts))
     logger.info('Variables:' )
-    logger.info('FILE_DIR: {}'.format(FILE_DIR))
     logger.info('DOWN_PATH: {}'.format(DOWN_PATH))
     logger.info('RETRY: {}'.format(retry))
-    logger.info('SCRAPE_URL: {}'.format(scrape_url))
 
     # ---------------------------------------
     # course page
@@ -737,7 +774,7 @@ if __name__ == '__main__':
                     # scrape
                     # -------------------------------------------------------
 
-                    scraped_college = scrape_cohort(c, screen_cap, driver, cohort_term, end_term)
+                    scraped_college = scrape_cohort(c, screen_cap, driver, cohort_term, end_term, level, convert)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break

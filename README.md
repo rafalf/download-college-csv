@@ -17,6 +17,7 @@ scrape only a specific college.
 ## Installation
 * https://www.python.org/downloads/release/python-2713/
 * run command line as administrator: **pip instal -U selenium**
+* **pip install openpyxl**
 
 ## Examples:
 ``` python run.py -l -r 10 -v -s``` - scrape all colleges, log into a file in the verbose mode, 
