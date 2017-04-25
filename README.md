@@ -34,7 +34,10 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 * --end-term
 </br></br>
 * -u, --url : must be set to: cohort
-
+* --convert : to convert csv to xlsx
+* --level : to scrape a specific cohort level e.g. "One Level Below Transfer"
 
 ## Example:
-``` python run -u cohort -c 8 --cohort-term "Summer 2009" --end-term "Winter 2017" -s ```
+``` python run.py -u cohort -c 8 --cohort-term "Summer 2009" --end-term "Winter 2017" -s ```
+</br>
+```pythin run.py -u cohort -c 6 --cohort-term "Summer 2009" --end-term "Winter 2017" -s --level "One Level Below Transfer" --convert```
