@@ -13,6 +13,7 @@ How to get college ids, it's as simple as running the script with this argument:
 * -p, --print-college : to print all available colleges with their ids. ids are used to pass as an argument when we want to
 scrape only a specific college.
 * -r, --retry : to set how many times the script will retry to scrape/download data. by default is set to 3.
+* --convert :  to create a xlsx file
 
 ## Installation
 * https://www.python.org/downloads/release/python-2713/
@@ -26,6 +27,8 @@ retry up 10 times to scrape data and save a screencap right before the export to
 ```python run.py -c 15``` - scrape the college with an id of 15
 </br>
 ```pyton run.py -print-college -l``` - open up the url, get the list of all colleges and print it out
+</br>
+```python run.py -c 15 --convert``` - scrape the college with an id of 15 and create a xlsx file
 
 # Scrape cohort:
 ## arguments: 
