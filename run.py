@@ -34,6 +34,7 @@ DOWNLOADED_COHORT_PARTIAL = 'BSkillsProgressTracker.csv.crdownload'
 LOGS = os.path.join(FILE_DIR, 'logs')
 SCRAPE_LOG = os.path.join(LOGS, 'scrape.csv')
 
+
 class ExitException(Exception):
     pass
 
@@ -45,18 +46,15 @@ def get_driver(url):
         driver = webdriver.Chrome()
     else:
         driver_path = os.path.join(os.path.dirname(__file__), 'chromedriver.exe')
-
         chromeOptions = webdriver.ChromeOptions()
         prefs = {"download.default_directory": DOWN_PATH}
-        prefs["credentials_enable_service"] = False
-        prefs["password_manager_enabled"] = False
         chromeOptions.add_experimental_option("prefs", prefs)
-
+        # chromeOptions.add_argument('headless')
         driver = webdriver.Chrome(executable_path=driver_path, chrome_options=chromeOptions)
     driver.maximize_window()
 
     driver.get(url)
-    logger.info('url opened : {}'.format(url))
+    logger.info('url: {}'.format(url))
     return driver
 
 
@@ -75,7 +73,8 @@ def scrape(college, wait_to_load, screen_cap, driver, convert):
             distr_id = 'ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBI2T0'
             wait.until(EC.element_to_be_clickable((By.ID, distr_id)))
 
-            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBT tr:nth-of-type(3)'))).click()
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,
+                        '#ASPxRoundPanel1_ASPxComboBoxSDC_DDD_L_LBT tr:nth-of-type(3)'))).click()
             time.sleep(2)
 
             # college
@@ -459,16 +458,15 @@ def print_all_colleges(driver):
     all_coll = driver.find_elements_by_css_selector('#ASPxRoundPanel1_ASPxDropDownEditDistColl_'
                                                     'DDD_DDTC_checkListBoxDistColl_LBT .dxeListBoxItemRow_Aqua')
 
-    l = []
+    l = {}
     logger.info('Total colleges ({})'.format(len(all_coll)))
     for counter, coll in enumerate(all_coll):
         el_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(counter)
         el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
         logger.info("no.--> ({}): --> {}".format(counter, el.text))
-        l.append(counter)
-
-    # dont return select all
-    return l[1:]
+        if not el.text.count('Select All'):
+            l[el.text] = counter
+    return l
 
 
 def print_all_colleges_cohort(driver):
@@ -481,13 +479,13 @@ def print_all_colleges_cohort(driver):
     time.sleep(3)
     all_coll = driver.find_elements_by_css_selector('#ASPxRoundPanel1_ASPxComboBoxColl_DDD_L_LBT .dxeListBoxItemRow_Aqua')
 
-    l = []
+    l = {}
     logger.info('Total cohort colleges ({})'.format(len(all_coll)))
     for counter, coll in enumerate(all_coll):
         el_id = "ASPxRoundPanel1_ASPxComboBoxColl_DDD_L_LBI{}T0".format(counter)
         el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
         logger.info("no.--> ({}): --> {}".format(counter, el.text))
-        l.append(counter)
+        l[el.text] = counter
     return l
 
 
@@ -619,10 +617,28 @@ def _write_row(row):
         logger.info('added to scraped.csv file: {}'.format(row))
 
 
+def _clean_up():
+
+    # -------------------------------------------------------
+    # clean up
+    # -------------------------------------------------------
+    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
+        os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
+        logger.info('Deleted: {}'.format(DOWNLOADED))
+    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL)):
+        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL))
+        logger.info('Deleted: {}'.format(DOWNLOADED_PARTIAL))
+    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT)):
+        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT))
+        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT))
+    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL)):
+        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL))
+        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT_PARTIAL))
+
+
 if __name__ == '__main__':
     verbose = None
     log_file = None
-    college = None
     print_col = None
     screen_cap = None
     wait_to_load = 3600
@@ -649,7 +665,7 @@ if __name__ == '__main__':
         if opt in ("-v", "--verbose"):
             verbose = True
         elif opt in ("-c", "--college"):
-            college = arg.split(',')
+            college = arg
         elif opt in ("-l", "--log-file"):
             log_file = True
         elif opt in ("-p", "--print-college"):
@@ -694,22 +710,25 @@ if __name__ == '__main__':
 
     if scrape_page == 'course':
 
-        if college == 'all' or print_col:
-            driver = get_driver(scrape_url)
-            college = print_all_colleges(driver)
-            driver.quit()
-            if print_col:
-                sys.exit(0)
+        driver = get_driver(scrape_url)
+        all_colleges = print_all_colleges(driver)
+        driver.quit()
+        if print_col:
+            sys.exit(0)
 
-        for c in college:
+        if college == "all":
+            scr_ = [all_colleges[key] for key in all_colleges]
+        else:
+            scr_ = [all_colleges[college]]
+
+        logger.info('Ids to scrape:')
+        logger.info(scr_)
+
+        for c in scr_:
+
             for retry_attempts in range(retry):
                 try:
-                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
-                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
-                        logger.info('Deleted: {}'.format(DOWNLOADED))
-                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL)):
-                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL))
-                        logger.info('Deleted: {}'.format(DOWNLOADED_PARTIAL))
+                    _clean_up()
 
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
@@ -747,31 +766,24 @@ if __name__ == '__main__':
 
     elif scrape_page == 'cohort':
 
-        if college == 'all' or print_col:
-            driver = get_driver(scrape_url)
-            college = print_all_colleges_cohort(driver)
-            driver.quit()
-            if print_col:
-                sys.exit(0)
+        driver = get_driver(scrape_url)
+        all_colleges = print_all_colleges_cohort(driver)
+        driver.quit()
+        if print_col:
+            sys.exit(0)
 
-        for c in college:
+        if college == "all":
+            scr_ = [all_colleges[key] for key in all_colleges]
+        else:
+            scr_ = [all_colleges[college]]
+
+        logger.info('Ids to scrape:')
+        logger.info(scr_)
+
+        for c in scr_:
             for retry_attempts in range(retry):
                 try:
-                    # -------------------------------------------------------
-                    # clean up
-                    # -------------------------------------------------------
-                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
-                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
-                        logger.info('Deleted: {}'.format(DOWNLOADED))
-                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL)):
-                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL))
-                        logger.info('Deleted: {}'.format(DOWNLOADED_PARTIAL))
-                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT)):
-                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT))
-                        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT))
-                    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL)):
-                        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL))
-                        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT_PARTIAL))
+                    _clean_up()
 
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
