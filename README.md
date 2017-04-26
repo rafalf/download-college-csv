@@ -2,12 +2,10 @@
 ## arguments:
 * -v, --verbose : to run in the verbose mode (debug logger)
 * -c, --college : pass in a college name e.g. -c Alameda
-
+</br>
 To scrape all colleges pass in: 
-**-c all** or don't do **-c** at all
-</br>
+-c all or don't do **-c** at all (***default***)
 * -p, --print-college : to print out all available colleges
-</br>
 * -s, --screen-capture : to save a screenshot of the browser before the csv file is downloaded
 * -p, --print-college : to print all available colleges with their ids. ids are used to pass as an argument when we want to
 scrape only a specific college.
@@ -37,9 +35,8 @@ retry up 10 times to scrape data and save a screencap right before the export to
 As before however 2 new arguments are introduced to narrow down search criteria:
 * --cohort-term 
 * --end-term
-</br></br>
 * -u, --url : must be set to: basic skills
-* --convert : to convert csv to xlsx
+* --convert : to convert csv to xlsx (***default*** is false; dont convert)
 * --level : to scrape a specific cohort level e.g. "One Level Below Transfer"
 
 ## Example:
