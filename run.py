@@ -785,9 +785,9 @@ if __name__ == '__main__':
         elif opt in ("-r", "--retry"):
             retry = int(arg)
         elif opt in ("-u", "--url"):
-            if arg  == 'cohort':
+            if arg == 'basic skills':
                 scrape_url = 'http://datamart.cccco.edu/Outcomes/BasicSkills_Cohort_Tracker.aspx'
-                scrape_page = 'cohort'
+                scrape_page = 'basic skills'
             elif arg == 'transfer':
                 scrape_url = 'http://datamart.cccco.edu/Outcomes/Transfer_Velocity.aspx'
                 scrape_page = 'transfer'
