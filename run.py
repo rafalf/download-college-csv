@@ -79,7 +79,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
             driver.execute_script(js_script)
             break
         except:
-            logger.info('Failed. Will retry up to 5 times to select the college --> ({})'.format(counter))
+            logger.info('Failed. Retry up to 5 times to select the college --> ({})'.format(counter))
 
     el_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
     el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
@@ -111,7 +111,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
     js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();"
     driver.execute_script(js_script)
-    logger.info('view report clicked')
+    logger.info('View report clicked')
 
     _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
@@ -124,7 +124,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
 
     # click update report
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
-    logger.info('update selected')
+    logger.info('Update selected')
 
     _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
@@ -132,7 +132,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
     # click csv
     logger.info('About to click export to csv')
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
-    logger.info('export to csv clicked')
+    logger.info('Export to csv clicked')
 
     if screen_cap:
         driver.save_screenshot(os.path.join(down_college_specific, college_name.lower() + ".png"))
@@ -296,7 +296,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                 if file_part_skill == '':
                     raise Exception('Skill name not expanded')
                 elif file_part_skill in skill_scraped:
-                    logger.info('skill already scraped: {}'.format(file_part_skill))
+                    logger.info('Skill already scraped: {}'.format(file_part_skill))
                     continue
 
                 logger.info('Selecting skill: {}'.format(file_part_skill))
@@ -324,7 +324,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                     if file_part_level == '':
                         raise Exception('Cohort level not expanded')
                     elif file_part_skill + " " + file_part_level in level_scraped:
-                        logger.info('level already scraped: {}'.format(file_part_level))
+                        logger.info('Level already scraped: {}'.format(file_part_level))
                         logger.info(level_scraped)
                         continue
 
@@ -341,7 +341,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
 
                     # click view report
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton'))).click()
-                    logger.info('view report clicked')
+                    logger.info('View report clicked')
 
                     _wait_until_loaded(wait_to_load, driver)
                     time.sleep(2)
@@ -367,7 +367,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
 
                     # click update report
                     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport'))).click()
-                    logger.info('update selected')
+                    logger.info('Update selected')
 
                     _wait_until_loaded(wait_to_load, driver)
                     time.sleep(2)
@@ -375,11 +375,11 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                     # click csv
                     logger.info('About to click export to csv')
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
-                    logger.info('export to csv clicked')
+                    logger.info('Export to csv clicked')
                     time.sleep(2)
 
                     # click export as
-                    logger.info('click export to csv --> browser starts downloading')
+                    logger.info('Click export to csv --> browser starts downloading')
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')),
                                message='element not clickable').click()
 
@@ -397,7 +397,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
 
                     # append level scraped
                     level_scraped.append(file_part_skill + " " + file_part_level)
-                    logger.info('add scraped level: {}'.format(file_part_skill + " " + file_part_level))
+                    logger.info('Add scraped level: {}'.format(file_part_skill + " " + file_part_level))
 
                     # level - all
                     wait.until(EC.element_to_be_clickable(
@@ -422,7 +422,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
             logger.info('UnexpectedAlertPresentException: accepting alert')
             driver.switch_to.alert.accept()
             level_scraped.append(file_part_skill + " " + file_part_level)
-            logger.info('add scraped level: {}'.format(file_part_skill + " " + file_part_level))
+            logger.info('Add scraped level: {}'.format(file_part_skill + " " + file_part_level))
             continue
         except:
             logger.info('Retry expand end term')
@@ -479,7 +479,7 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
     js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();"
     driver.execute_script(js_script)
-    logger.info('view report clicked')
+    logger.info('View report clicked')
 
     _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
@@ -497,7 +497,7 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
 
     # click update report
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
-    logger.info('update selected')
+    logger.info('Update selected')
 
     _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
@@ -505,7 +505,7 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
     # click csv
     logger.info('About to click export to csv')
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
-    logger.info('export to csv clicked')
+    logger.info('Export to csv clicked')
 
     if screen_cap:
         driver.save_screenshot(os.path.join(down_college_specific, college_name.lower() + ".png"))
@@ -605,25 +605,25 @@ def _move_file(source, dest):
         if DOWNLOADED in files_:
             sys.stdout.write('\n')
             sys.stdout.flush()
-            logger.info('file downloaded: {}'.format(DOWNLOADED))
+            logger.info('File downloaded: {}'.format(DOWNLOADED))
             break
         else:
             sys.stdout.write('.')
             sys.stdout.flush()
             time.sleep(1)
     else:
-        logger.warning("file not downloaded".format(DOWNLOADED))
-        raise Exception('file not downloaded')
+        logger.warning("File not downloaded".format(DOWNLOADED))
+        raise Exception('File not downloaded')
 
     try:
         copyfile(os.path.join(source, DOWNLOADED), os.path.join(dest, DOWNLOADED))
-        logger.info('copied as: {}'.format(os.path.join(dest, DOWNLOADED)))
+        logger.info('Copied as: {}'.format(os.path.join(dest, DOWNLOADED)))
 
         os.remove(os.path.join(source, DOWNLOADED))
-        logger.info('deleted: {}'.format(os.path.join(source, DOWNLOADED)))
+        logger.info('Deleted: {}'.format(os.path.join(source, DOWNLOADED)))
     except:
-        logger.warning("failed to copy, delete file: {}".format(DOWNLOADED))
-        raise Exception('failed to copy, delete file')
+        logger.warning("Failed to copy, delete file: {}".format(DOWNLOADED))
+        raise Exception('Failed to copy, delete file')
 
 
 def _convert_to_xlsx(source, destination):
@@ -639,15 +639,15 @@ def _convert_to_xlsx(source, destination):
         f.close()
 
         wb.save(destination)
-        logger.info('xlsx created --> {}'.format(destination))
+        logger.info('Xlsx created --> {}'.format(destination))
     except:
-        logger.warning("failed to convert: {}".format(source))
-        raise Exception('failed to convert')
+        logger.warning("Failed to convert: {}".format(source))
+        raise Exception('Failed to convert')
 
 
 def _move_file_cohort(source, dest, file_name):
 
-    logger.info('checking downloaded file')
+    logger.info('Checking downloaded file')
     for _ in range(60):
         files_ = os.listdir(source)
         if DOWNLOADED_COHORT in files_:
@@ -660,18 +660,18 @@ def _move_file_cohort(source, dest, file_name):
             sys.stdout.flush()
             time.sleep(1)
     else:
-        logger.warning("file not downloaded".format(DOWNLOADED_COHORT))
-        raise Exception('file not downloaded')
+        logger.warning("File not downloaded".format(DOWNLOADED_COHORT))
+        raise Exception('File not downloaded')
 
     try:
         copyfile(os.path.join(source, DOWNLOADED_COHORT), os.path.join(dest, file_name))
-        logger.info('copied as: {}'.format(os.path.join(dest, file_name)))
+        logger.info('Copied as: {}'.format(os.path.join(dest, file_name)))
 
         os.remove(os.path.join(source, DOWNLOADED_COHORT))
-        logger.info('deleted: {}'.format(os.path.join(source, DOWNLOADED_COHORT)))
+        logger.info('Deleted: {}'.format(os.path.join(source, DOWNLOADED_COHORT)))
     except:
-        logger.warning("failed to copy, delete file: {}".format(DOWNLOADED_COHORT))
-        raise Exception('failed to copy, delete file')
+        logger.warning("Failed to copy, delete file: {}".format(DOWNLOADED_COHORT))
+        raise Exception('Failed to copy, delete file')
 
 
 def _wait_until_loaded(wait_, driver):
@@ -684,11 +684,11 @@ def _wait_until_loaded(wait_, driver):
                 logger.info('_wait_until_loaded: loading present:  count: {}'.format(len(els)))
                 for el in els:
                     if el.is_displayed():
-                        logger.info('loading data displaying')
+                        logger.info('Loading data displaying')
                         displaying = True
                         break
                 else:
-                    logger.info('loading data not displaying yet')
+                    logger.info('Loading data not displaying yet')
                     displaying = False
                     time.sleep(0.3)
 
@@ -697,7 +697,7 @@ def _wait_until_loaded(wait_, driver):
             except StaleElementReferenceException:
                 logger.info('_wait_until_loaded: StaleElementReferenceException')
         else:
-            logger.warning('loading data element has not displayed')
+            logger.warning('Loading data element has not displayed')
 
         for _ in range(wait_):
             els = driver.find_elements_by_id('ASPxRoundPanel3_ASPxPivotGrid1_TL')
@@ -713,16 +713,16 @@ def _wait_until_loaded(wait_, driver):
             if counter_displaying == len(els):
                 return
         else:
-            logger.warning('loading data element still displays')
+            logger.warning('Loading data element still displays')
     except TimeoutException:
-        logger.info('loading data element not displaying')
+        logger.info('Loading data element not displaying')
 
 
 def _write_row(row):
     with open(SCRAPE_LOG, 'a') as hlr:
         wrt = csv.writer(hlr, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         wrt.writerow(row)
-        logger.info('added to scraped.csv file: {}'.format(row))
+        logger.info('Added to scraped.csv file: {}'.format(row))
 
 
 def _clean_up():
