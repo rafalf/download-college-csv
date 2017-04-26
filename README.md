@@ -3,7 +3,7 @@
 * run command line as administrator: ```pip instal -U selenium```
 * ```pip install openpyxl```
 
-# Scrape college:
+# Scrape course success:
 ## arguments:
 * -v, --verbose : to run in the verbose mode (debug logger)
 * -c, --college : pass in a college name e.g. -c Alameda (if not provided, all colleges scraped)
@@ -11,7 +11,7 @@
 * -s, --screen-capture : to save a screenshot of the browser before the csv file is downloaded
 * -p, --print-college : to print all available colleges with their ids. ids are used to pass as an argument when we want to
 scrape only a specific college.
-* -r, --retry : to set how many times the script will retry to scrape/download data. by default is set to 3.
+* -r, --retry : to set how many times the script will retry to scrape/download data. (***default*** = 3).
 * --convert :  to create a xlsx file
 * -u, --url : set to: "course success" (or don't pass in as it's set by ***default***)
 * --search-type: set to: "Collegewide Search" (***default***) , "Districtwide Search" or "Statewide Search"
@@ -28,7 +28,7 @@ retry up 10 times to scrape data and save a screencap right before the export to
 </br>
 ```python run.py -c "Allan Hancock CCD" --search-type "Districtwide Search"```
 
-# Scrape cohort:
+# Scrape basic skills:
 ## arguments: 
 As before however 2 new arguments are introduced to narrow down search criteria:
 * --cohort-term 
