@@ -22,14 +22,18 @@ import openpyxl
 
 logger = logging.getLogger(os.path.basename(__file__))
 
-DOWNLOADED = 'CourseRetSuccessSumm.csv'
-DOWNLOADED_XLSX = 'CourseRetSuccessSumm.xlsx'
-DOWNLOADED_PARTIAL = 'CourseRetSuccessSumm.csv.crdownload'
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWN_PATH = os.path.join(FILE_DIR, 'download')
 
+DOWNLOADED = 'CourseRetSuccessSumm.csv'
+DOWNLOADED_XLSX = 'CourseRetSuccessSumm.xlsx'
+DOWNLOADED_PARTIAL = 'CourseRetSuccessSumm.csv.crdownload'
+
 DOWNLOADED_COHORT = 'BSkillsProgressTracker.csv'
 DOWNLOADED_COHORT_PARTIAL = 'BSkillsProgressTracker.csv.crdownload'
+
+DOWNLOADED_TRANSFER = 'TransferVelocity.csv'
+DOWNLOADED_TRANSFER_PARTIAL = 'TransferVelocity.csv.crdownload'
 
 LOGS = os.path.join(FILE_DIR, 'logs')
 SCRAPE_LOG = os.path.join(LOGS, 'scrape.csv')
@@ -54,7 +58,7 @@ def get_driver(url):
     driver.maximize_window()
 
     driver.get(url)
-    logger.info('url: {}'.format(url))
+    logger.info('Open url: {}'.format(url))
     return driver
 
 
@@ -88,7 +92,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
 
     down_college_specific = os.path.join(DOWN_PATH, college_name)
     if not os.path.isdir(down_college_specific):
-        os.mkdir(down_college_specific)
+        os.makedirs(down_college_specific)
         logger.info("Created folder: {}".format(down_college_specific))
 
     # term
@@ -284,6 +288,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
 
             if len(all_skills) == 0:
                 logger.info('Skills = 0. will retry')
+                raise Exception('Skills equal 0')
 
             for counter in range(len(all_skills)):
 
@@ -384,7 +389,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                                message='element not clickable').click()
 
                     file_name = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.csv'
-                    _move_file_cohort(DOWN_PATH, down_college_specific, file_name)
+                    _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED_COHORT)
 
                     if convert:
                         file_name_xlsx = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.xlsx'
@@ -432,7 +437,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
         raise Exception('Failed skills and level 10 times')
 
 
-def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_type):
+def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_type, cohort_year):
 
     wait = WebDriverWait(driver, 10)
 
@@ -460,69 +465,170 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
     logger.info("Selected college: ({}): {}".format(college, el.text))
     college_name = el.text
 
-    down_college_specific = os.path.join(DOWN_PATH, college_name)
+    # create the transfer folder
+    down_college_specific = os.path.join(DOWN_PATH, college_name, 'transfer')
     if not os.path.isdir(down_college_specific):
-        os.mkdir(down_college_specific)
+        os.makedirs(down_college_specific)
         logger.info("Created folder: {}".format(down_college_specific))
 
-    # year (select all)
+    # year
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditTerm_B-1'))).click()
-    term_id = "ASPxRoundPanel1_ASPxDropDownEditTerm_DDD_DDTC_checkListBoxTerm_LBI0T1"
-    js_script = "document.getElementById('{}').click();".format(term_id)
+
+    all_el = '#ASPxRoundPanel1_ASPxDropDownEditTerm_DDD_DDTC_checkListBoxTerm_LBT tr>td:nth-of-type(2)'
+    all_ = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_el)))
+
+    years_ = [e.text for e in all_]
+    if cohort_year not in years_:
+        logger.info("Cohort year not found: {}. No data available".format(cohort_year))
+        logger.info("Available years:")
+        logger.info(years_)
+        raise ExitException('Cohort year not found')
+
+    if cohort_year == 'Select All':
+        coh_el = "ASPxRoundPanel1_ASPxDropDownEditTerm_DDD_DDTC_checkListBoxTerm_LBI0T1"
+    else:
+        coh_el = "ASPxRoundPanel1_ASPxDropDownEditTerm_DDD_DDTC_checkListBoxTerm_{}_D".format(cohort_year)
+
+    js_script = "document.getElementById('{}').click();".format(coh_el)
     driver.execute_script(js_script)
+    logger.info("Cohort year selected: {}".format(cohort_year))
 
-    # years to transfer
+    years_scraped = []
 
+    for _ in range(10):
 
+        try:
+            # years to transfer
+            wait.until(EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxTW_B-1'))).click()
+            time.sleep(2)
+            all_years = wait.until(EC.presence_of_all_elements_located(
+                (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxTW_DDD_L_LBT .dxeListBoxItem_Aqua')))
 
-    # click view report
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
-    js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();"
-    driver.execute_script(js_script)
-    logger.info('View report clicked')
+            if len(all_years) == 0:
+                logger.info('Years = 0. will retry')
+                raise Exception(' Years equal 0')
+            else:
+                logger.info('Years = {}'.format(len(all_years)))
 
-    _wait_until_loaded(wait_to_load, driver)
-    time.sleep(2)
+            for counter, year_ in enumerate(all_years):
 
-    # click checkboxes
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_0'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_2'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_3'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_4'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_0'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_1'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_2'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_3'))).click()
-    logger.info('Checkboxes selected')
+                all = wait.until(EC.presence_of_all_elements_located(
+                (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxTW_DDD_L_LBT .dxeListBoxItem_Aqua')))
 
-    # click update report
-    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
-    logger.info('Update selected')
+                year_name = all[counter].text
+                file_part_year = year_name.strip()
 
-    _wait_until_loaded(wait_to_load, driver)
-    time.sleep(2)
+                if file_part_year == '':
+                    raise Exception('Year name not expanded')
+                elif file_part_year in years_scraped:
+                    logger.info('Year already scraped: {}'.format(file_part_year))
+                    continue
 
-    # click csv
-    logger.info('About to click export to csv')
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
-    logger.info('Export to csv clicked')
+                logger.info('Selecting year name: {}'.format(file_part_year))
+                all[counter].click()
 
-    if screen_cap:
-        driver.save_screenshot(os.path.join(down_college_specific, college_name.lower() + ".png"))
+                # click view report
+                wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
+                js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();"
+                driver.execute_script(js_script)
+                logger.info('View report clicked')
 
-    time.sleep(5)
+                _wait_until_loaded(wait_to_load, driver)
+                time.sleep(2)
 
-    # click export as
-    logger.info('click export to csv --> browser starts downloading')
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')), message='element not clickable').click()
+                # checkboxes
+                if search_type == 'Collegewide Search':
 
-    _move_file(DOWN_PATH, down_college_specific)
+                    checked = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_0')))
 
-    if convert:
-        _convert_to_xlsx(os.path.join(down_college_specific, DOWNLOADED),
-                         os.path.join(down_college_specific, DOWNLOADED_XLSX))
+                    if not checked.is_selected():
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_0'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_2'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_3'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_4'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_0'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_1'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_2'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_3'))).click()
+                        logger.info('Checkboxes selected')
+                    else:
+                        logger.info('Checkboxes already selected')
 
-    return college_name
+                elif search_type == 'Districtwide Search':
+
+                    checked = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_1')))
+
+                    if not checked.is_selected():
+                        # click checkboxes
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_1'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_2'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_3'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_4'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_0'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_1'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_2'))).click()
+                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_3'))).click()
+                        logger.info('Checkboxes selected')
+                    else:
+                        logger.info('Checkboxes already selected')
+
+                # click update report
+                wait.until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
+                logger.info('Update selected')
+
+                _wait_until_loaded(wait_to_load, driver)
+                time.sleep(2)
+
+                # click csv
+                logger.info('About to click export to csv')
+                wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
+                logger.info('Export to csv clicked')
+
+                # click export as
+                logger.info('Click export to csv --> browser starts downloading')
+                wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')),
+                           message='element not clickable').click()
+
+                # files
+                # ----------------
+
+                file_name = search_type + '-' + cohort_year + '-' + file_part_year + '.csv'
+                _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED_TRANSFER)
+
+                if convert:
+                    file_name_xlsx = search_type + '-' + cohort_year + '-' + file_part_year + '.xlsx'
+                    _convert_to_xlsx(os.path.join(down_college_specific, file_name),
+                                     os.path.join(down_college_specific, file_name_xlsx))
+
+                if screen_cap:
+                    s = search_type + '-' + cohort_year + '-' + file_part_year + '.png'
+                    driver.save_screenshot(os.path.join(down_college_specific, s))
+
+                # append year scraped
+                years_scraped.append(file_part_year)
+                logger.info('Year scraped level: {}'.format(file_part_year))
+
+                # expand years
+                wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxTW_B-1'))).click()
+                time.sleep(2)
+
+            return college_name
+
+        except UnexpectedAlertPresentException:
+            logger.info('UnexpectedAlertPresentException: accepting alert')
+            driver.switch_to.alert.accept()
+            years_scraped.append(file_part_year)
+            logger.info('Add scraped year: {}'.format(file_part_year))
+            continue
+        except:
+            logger.info('Retry expand years')
+
+    else:
+        logger.info('Failed years 10 times')
+        raise Exception('Failed years 10 times')
 
 
 def select_search_type(_search_type):
@@ -564,7 +670,6 @@ def print_all_colleges(driver, _search_type):
         except:
             logger.info('Failed. Will retry up to 5 times to get colleges --> ({})'.format(counter))
             driver.refresh()
-
 
     l = {}
     logger.info('Total colleges ({})'.format(len(all_coll)))
@@ -626,6 +731,35 @@ def _move_file(source, dest):
         raise Exception('Failed to copy, delete file')
 
 
+def _move_file_specific(source, dest, file_name_dest, file_name_source):
+
+    logger.info('Checking downloaded file')
+    for _ in range(60):
+        files_ = os.listdir(source)
+        if file_name_source in files_:
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+            logger.info('File downloaded: {}'.format(file_name_source))
+            break
+        else:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            time.sleep(1)
+    else:
+        logger.warning("File not downloaded".format(file_name_source))
+        raise Exception('File not downloaded')
+
+    try:
+        copyfile(os.path.join(source, file_name_source), os.path.join(dest, file_name_dest))
+        logger.info('Copied as: {}'.format(os.path.join(dest, file_name_dest)))
+
+        os.remove(os.path.join(source, file_name_source))
+        logger.info('Deleted: {}'.format(os.path.join(source, file_name_source)))
+    except:
+        logger.warning("Failed to copy, delete file: {}".format(file_name_source))
+        raise Exception('Failed to copy, delete file')
+
+
 def _convert_to_xlsx(source, destination):
 
     try:
@@ -639,39 +773,10 @@ def _convert_to_xlsx(source, destination):
         f.close()
 
         wb.save(destination)
-        logger.info('Xlsx created --> {}'.format(destination))
+        logger.info('Created xlsx --> {}'.format(destination))
     except:
-        logger.warning("Failed to convert: {}".format(source))
+        logger.warning("Failed to convert source file: {}".format(source))
         raise Exception('Failed to convert')
-
-
-def _move_file_cohort(source, dest, file_name):
-
-    logger.info('Checking downloaded file')
-    for _ in range(60):
-        files_ = os.listdir(source)
-        if DOWNLOADED_COHORT in files_:
-            sys.stdout.write('\n')
-            sys.stdout.flush()
-            logger.info('file downloaded: {}'.format(DOWNLOADED_COHORT))
-            break
-        else:
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            time.sleep(1)
-    else:
-        logger.warning("File not downloaded".format(DOWNLOADED_COHORT))
-        raise Exception('File not downloaded')
-
-    try:
-        copyfile(os.path.join(source, DOWNLOADED_COHORT), os.path.join(dest, file_name))
-        logger.info('Copied as: {}'.format(os.path.join(dest, file_name)))
-
-        os.remove(os.path.join(source, DOWNLOADED_COHORT))
-        logger.info('Deleted: {}'.format(os.path.join(source, DOWNLOADED_COHORT)))
-    except:
-        logger.warning("Failed to copy, delete file: {}".format(DOWNLOADED_COHORT))
-        raise Exception('Failed to copy, delete file')
 
 
 def _wait_until_loaded(wait_, driver):
@@ -681,7 +786,7 @@ def _wait_until_loaded(wait_, driver):
 
             try:
                 els = WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((By.ID, 'ASPxRoundPanel3_ASPxPivotGrid1_TL')))
-                logger.info('_wait_until_loaded: loading present:  count: {}'.format(len(els)))
+                logger.info('Loading present:  count: {}'.format(len(els)))
                 for el in els:
                     if el.is_displayed():
                         logger.info('Loading data displaying')
@@ -695,7 +800,7 @@ def _wait_until_loaded(wait_, driver):
                 if displaying:
                     break
             except StaleElementReferenceException:
-                logger.info('_wait_until_loaded: StaleElementReferenceException')
+                logger.info('StaleElementReferenceException: while loading data')
         else:
             logger.warning('Loading data element has not displayed')
 
@@ -730,18 +835,14 @@ def _clean_up():
     # -------------------------------------------------------
     # clean up
     # -------------------------------------------------------
-    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED)):
-        os.remove(os.path.join(DOWN_PATH, DOWNLOADED))
-        logger.info('Deleted: {}'.format(DOWNLOADED))
-    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL)):
-        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_PARTIAL))
-        logger.info('Deleted: {}'.format(DOWNLOADED_PARTIAL))
-    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT)):
-        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT))
-        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT))
-    if os.path.isfile(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL)):
-        os.remove(os.path.join(DOWN_PATH, DOWNLOADED_COHORT_PARTIAL))
-        logger.info('Deleted: {}'.format(DOWNLOADED_COHORT_PARTIAL))
+
+    files = [DOWNLOADED, DOWNLOADED_PARTIAL, DOWNLOADED_COHORT, DOWNLOADED_COHORT_PARTIAL,
+             DOWNLOADED_TRANSFER, DOWNLOADED_TRANSFER_PARTIAL]
+
+    for clean_file in files:
+        if os.path.isfile(os.path.join(DOWN_PATH, clean_file)):
+            os.remove(os.path.join(DOWN_PATH, clean_file))
+            logger.info('Deleted: {}'.format(clean_file))
 
 
 if __name__ == '__main__':
@@ -761,6 +862,7 @@ if __name__ == '__main__':
     convert = None
     search_type = 'Collegewide Search'
     available_searches = ['Collegewide Search', 'Statewide Search', 'Districtwide Search']
+    cohort_year = 'Select All'
 
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
@@ -770,7 +872,7 @@ if __name__ == '__main__':
     argv = sys.argv[1:]
     opts, args = getopt.getopt(argv, "vc:lpsr:u:", ["verbose", "college=", 'log-file', 'print-college',
                                                     'screen-capture', "retry=", "url=", "cohort-term=", "end-term=",
-                                                    'level=', 'convert', 'search-type='])
+                                                    'level=', 'convert', 'search-type=', "cohort-year="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -801,6 +903,8 @@ if __name__ == '__main__':
             convert = True
         elif opt in "--search-type":
             search_type = arg
+        elif opt in "--cohort-year":
+            cohort_year = arg
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -827,6 +931,7 @@ if __name__ == '__main__':
 
         if search_type not in available_searches:
             logger.info('Search not found: {}. No data available.'.format(search_type))
+            sys.exit(0)
 
         driver = get_driver(scrape_url)
         all_colleges = print_all_colleges(driver, search_type)
@@ -959,8 +1064,16 @@ if __name__ == '__main__':
 
     elif scrape_page == 'transfer':
 
+        if search_type not in available_searches:
+            logger.info('Search not found: {}. No data available.'.format(search_type))
+            sys.exit(0)
+        elif search_type == 'Statewide Search':
+            logger.info('Search found but college not available this search type: {}. '
+                        'No data available.'.format(search_type))
+            sys.exit(0)
+
         driver = get_driver(scrape_url)
-        all_colleges = print_all_colleges(driver)
+        all_colleges = print_all_colleges(driver, search_type)
         driver.quit()
         if print_col:
             sys.exit(0)
@@ -986,7 +1099,7 @@ if __name__ == '__main__':
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
 
-                    scraped_college = scrape_transfer(c, wait_to_load, screen_cap, driver, convert, search_type)
+                    scraped_college = scrape_transfer(c, wait_to_load, screen_cap, driver, convert, search_type, cohort_year)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
@@ -1002,6 +1115,12 @@ if __name__ == '__main__':
                     logger.warning('UnexpectedAlertPresentException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)
                     result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
+                except ExitException:
+                    logger.info('Data not available for specified college and cohort year. Exit')
+                    logger.debug('ExitException. Exit')
+                    logger.debug('err: ', exc_info=True)
+                    result = 'ExitException: Data not available'
+                    sys.exit(0)
                 except:
                     logger.warning('UndefinedException. Retry up to {} times'.format(retry))
                     logger.debug('err: ', exc_info=True)

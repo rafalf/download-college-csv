@@ -41,3 +41,14 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 ``` python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s ```
 </br>
 ```python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s --level "One Level Below Transfer" --convert```
+
+# Scrape transfer
+## arguments:
+* -u, -url : transfer
+* --cohort-year : 1995-1996 (**default** - "Select All") *Note: Did not download a report for me for All*
+* --search-type: set to: "Collegewide Search" (***default***) or "Districtwide Search" 
+*Note: Statewide Search - no data available for this search*
+## Example:
+```python run.py -u transfer -c Alameda --convert --cohort-year 1995-1996 -r 5```
+</br>
+```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search"```
