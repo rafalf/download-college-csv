@@ -437,7 +437,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
         raise Exception('Failed skills and level 10 times')
 
 
-def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_type, cohort_year):
+def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_type, cohort_year, years_transfer):
 
     wait = WebDriverWait(driver, 10)
 
@@ -524,6 +524,13 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
                 elif file_part_year in years_scraped:
                     logger.info('Year already scraped: {}'.format(file_part_year))
                     continue
+                elif years_transfer != 'Process All' and file_part_year != years_transfer:
+                    years_scraped.append(file_part_year)
+                    logger.info('Added to years scraped as: {} != Process All. Current year: {}'.
+                                format(years_transfer, file_part_year))
+                    continue
+                else:
+                    logger.info('Years to transfer: {}'.format(years_transfer))
 
                 logger.info('Selecting year name: {}'.format(file_part_year))
                 all[counter].click()
@@ -863,6 +870,7 @@ if __name__ == '__main__':
     search_type = 'Collegewide Search'
     available_searches = ['Collegewide Search', 'Statewide Search', 'Districtwide Search']
     cohort_year = 'Select All'
+    years_transfer = 'Process All'
 
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
@@ -871,8 +879,9 @@ if __name__ == '__main__':
 
     argv = sys.argv[1:]
     opts, args = getopt.getopt(argv, "vc:lpsr:u:", ["verbose", "college=", 'log-file', 'print-college',
-                                                    'screen-capture', "retry=", "url=", "cohort-term=", "end-term=",
-                                                    'level=', 'convert', 'search-type=', "cohort-year="])
+                                                    'screen-capture', "retry=", "url=", "cohort-term=",
+                                                    "end-term=", 'level=', 'convert', 'search-type=',
+                                                    "cohort-year=", "years-transfer="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -905,6 +914,8 @@ if __name__ == '__main__':
             search_type = arg
         elif opt in "--cohort-year":
             cohort_year = arg
+        elif opt in "--years-transfer":
+            years_transfer = arg
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -1099,7 +1110,8 @@ if __name__ == '__main__':
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
 
-                    scraped_college = scrape_transfer(c, wait_to_load, screen_cap, driver, convert, search_type, cohort_year)
+                    scraped_college = scrape_transfer(c, wait_to_load, screen_cap, driver, convert, search_type,
+                                                      cohort_year, years_transfer)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break

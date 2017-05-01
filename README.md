@@ -48,7 +48,10 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 * --cohort-year : 1995-1996 (**default** - "Select All") *Note: Did not download a report for me for All*
 * --search-type: set to: "Collegewide Search" (***default***) or "Districtwide Search" 
 *Note: Statewide Search - no data available for this search*
+* --years-transfer : 4 Years or Process All (***default***)
 ## Example:
 ```python run.py -u transfer -c Alameda --convert --cohort-year 1995-1996 -r 5```
 </br>
 ```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search"```
+</br>
+```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search" --years-transfer "4 Years"```
