@@ -5,6 +5,8 @@
 
 # Scrape course success:
 ## arguments:
+***default - the argument is not passed in*** 
+
 * -v, --verbose : to run in the verbose mode (debug logger)
 * -c, --college : pass in a college name e.g. -c Alameda (if not provided, all colleges scraped)
 * -p, --print-college : to print out all available colleges
@@ -30,25 +32,32 @@ retry up 10 times to scrape data and save a screencap right before the export to
 
 # Scrape basic skills:
 ## arguments: 
+
+***default - the argument is not passed in***  
+</br>
 As before however 2 new arguments are introduced to narrow down search criteria:
 * --cohort-term 
 * --end-term
 * -u, --url : must be set to: basic skills
 * --convert : to convert csv to xlsx (***default*** is false; dont convert)
-* --level : to scrape a specific cohort level e.g. "One Level Below Transfer"
+* --level : to scrape a specific cohort level e.g. "One Level Below Transfer" (***default*** is All)
+* --skills-subject : English - Writing, ESL - Listening etc. or Process All (***default***)
 
 ## Example:
 ``` python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s ```
 </br>
 ```python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s --level "One Level Below Transfer" --convert```
-
+</br>
+```python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s --level "One Level Below Transfer" --skills-subject Mathematics --convert```
 # Scrape transfer
 ## arguments:
+***default - the argument is not passed in*** 
+
 * -u, -url : transfer
 * --cohort-year : 1995-1996 (**default** - "Select All") *Note: Did not download a report for me for All*
 * --search-type: set to: "Collegewide Search" (***default***) or "Districtwide Search" 
 *Note: Statewide Search - no data available for this search*
-* --years-transfer : 4 Years or Process All (***default***)
+* --years-transfer : 4 Years etc. or Process All (***default***)
 ## Example:
 ```python run.py -u transfer -c Alameda --convert --cohort-year 1995-1996 -r 5```
 </br>

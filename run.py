@@ -156,7 +156,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
     return college_name
 
 
-def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, convert):
+def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, convert, basic_skills_subject):
 
     wait = WebDriverWait(driver, 10)
     short_wait = WebDriverWait(driver, 3)
@@ -303,6 +303,14 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                 elif file_part_skill in skill_scraped:
                     logger.info('Skill already scraped: {}'.format(file_part_skill))
                     continue
+                elif basic_skills_subject != 'Process All' and basic_skills_subject != file_part_skill:
+                    skill_scraped.append(file_part_skill)
+                    logger.info('Skill add to scraped: {}'.format(file_part_skill))
+                    logger.info('{} != Process All. Current year: {}'.
+                                format(basic_skills_subject, file_part_skill))
+                    continue
+                else:
+                    logger.info('Skill scrape: {}'.format(file_part_skill))
 
                 logger.info('Selecting skill: {}'.format(file_part_skill))
                 all[counter].click()
@@ -871,6 +879,7 @@ if __name__ == '__main__':
     available_searches = ['Collegewide Search', 'Statewide Search', 'Districtwide Search']
     cohort_year = 'Select All'
     years_transfer = 'Process All'
+    basic_skills_subject = 'Process All'
 
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
@@ -881,7 +890,7 @@ if __name__ == '__main__':
     opts, args = getopt.getopt(argv, "vc:lpsr:u:", ["verbose", "college=", 'log-file', 'print-college',
                                                     'screen-capture', "retry=", "url=", "cohort-term=",
                                                     "end-term=", 'level=', 'convert', 'search-type=',
-                                                    "cohort-year=", "years-transfer="])
+                                                    "cohort-year=", "years-transfer=", "skills-subject="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -916,6 +925,8 @@ if __name__ == '__main__':
             cohort_year = arg
         elif opt in "--years-transfer":
             years_transfer = arg
+        elif opt in "--skills-subject":
+            basic_skills_subject = arg
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -1035,7 +1046,8 @@ if __name__ == '__main__':
                     # scrape
                     # -------------------------------------------------------
 
-                    scraped_college = scrape_cohort(c, screen_cap, driver, cohort_term, end_term, level, convert)
+                    scraped_college = scrape_cohort(c, screen_cap, driver, cohort_term, end_term, level,
+                                                    convert, basic_skills_subject)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
