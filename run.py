@@ -878,7 +878,7 @@ def _wait_until_loaded(wait_, driver):
 
 
 def _write_row(row):
-    with open(SCRAPE_LOG, 'a') as hlr:
+    with open(SCRAPE_LOG, 'a+') as hlr:
         wrt = csv.writer(hlr, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         wrt.writerow(row)
         logger.info('Added to scraped.csv file: {}'.format(row))
