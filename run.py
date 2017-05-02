@@ -62,7 +62,7 @@ def get_driver(url):
     return driver
 
 
-def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, checks):
+def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, checkboxes):
 
     wait = WebDriverWait(driver, 10)
 
@@ -124,6 +124,12 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, chec
     # Checkboxes
     # -----------------------------------
 
+    # create a True, False list
+    # trim if > required
+    checkboxes = checkboxes[:12]
+    checks = _process_checboxes(checkboxes)
+    logger.info(checks)
+
     # Demographic Options
     _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_0', checks[0])
     # _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_1', checks[1])  # disabled
@@ -162,16 +168,18 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, chec
     time.sleep(5)
 
     # click export as
-    logger.info('click export to csv --> browser starts downloading')
+    logger.info('Click export to csv --> browser starts downloading')
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')), message='element not clickable').click()
 
     # copy file
-    _move_file(DOWN_PATH, down_college_specific)
+    file_name_csv = DOWNLOADED[:-4] + "-" + checkboxes + '.csv'
+    file_name_xlsx = DOWNLOADED_XLSX[:-5] + "-" + checkboxes + '.xlsx'
+    _move_file_specific(DOWN_PATH, down_college_specific, file_name_csv, DOWNLOADED)
 
     # convert to xlsx
     if convert:
-        _convert_to_xlsx(os.path.join(down_college_specific, DOWNLOADED),
-                         os.path.join(down_college_specific, DOWNLOADED_XLSX))
+        _convert_to_xlsx(os.path.join(down_college_specific, file_name_csv),
+                         os.path.join(down_college_specific, file_name_xlsx))
 
     return college_name
 
@@ -924,7 +932,7 @@ if __name__ == '__main__':
 
     # checkboxed default
     # > than max. checboxes on any report
-    checkboxes = "000000000000000"
+    checkboxes = "".join("0" for _ in range(20))
 
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
@@ -992,11 +1000,6 @@ if __name__ == '__main__':
     logger.info('DOWN_PATH: {}'.format(DOWN_PATH))
     logger.info('RETRY: {}'.format(retry))
 
-    # create a True,False list
-    checks = _process_checboxes(checkboxes)
-    logger.debug('Checkboxes:')
-    logger.debug(checks)
-
     # ---------------------------------------
     # course page
     # 'http://datamart.cccco.edu/Outcomes/Course_Ret_Success.aspx
@@ -1035,7 +1038,7 @@ if __name__ == '__main__':
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
 
-                    scraped_college = scrape(c, wait_to_load, screen_cap, driver, convert, search_type, checks)
+                    scraped_college = scrape(c, wait_to_load, screen_cap, driver, convert, search_type, checkboxes)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
