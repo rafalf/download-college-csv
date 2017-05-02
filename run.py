@@ -90,7 +90,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, chec
     logger.info("Selected college: ({}): {}".format(college, el.text))
     college_name = el.text
 
-    down_college_specific = os.path.join(DOWN_PATH, college_name)
+    down_college_specific = os.path.join(DOWN_PATH, college_name, 'course success')
     if not os.path.isdir(down_college_specific):
         os.makedirs(down_college_specific)
         logger.info("Created folder: {}".format(down_college_specific))
@@ -283,7 +283,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
     # Create folder
     # ----------------------------------------------------
 
-    down_college_specific = os.path.join(DOWN_PATH, college_name, 'cohort')
+    down_college_specific = os.path.join(DOWN_PATH, college_name, 'basic skills')
     if not os.path.isdir(down_college_specific):
         os.makedirs(down_college_specific)
         logger.info("Created folder: {}".format(down_college_specific))
