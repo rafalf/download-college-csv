@@ -163,7 +163,8 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, chec
     logger.info('Export to csv clicked')
 
     if screen_cap:
-        driver.save_screenshot(os.path.join(down_college_specific, college_name.lower() + ".png"))
+        file_name_png = DOWNLOADED[:-4] + "-" + checkboxes + '.png'
+        driver.save_screenshot(os.path.join(down_college_specific, file_name_png))
 
     time.sleep(5)
 
@@ -184,7 +185,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, chec
     return college_name
 
 
-def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, convert, basic_skills_subject):
+def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, convert, basic_skills_subject, checkboxes):
 
     wait = WebDriverWait(driver, 10)
     short_wait = WebDriverWait(driver, 3)
@@ -387,24 +388,29 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                     _wait_until_loaded(wait_to_load, driver)
                     time.sleep(2)
 
-                    checked = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DemoOptions_0')))
-                    if not checked.is_selected():
-                        # click checkboxes
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DemoOptions_0'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DemoOptions_1'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DemoOptions_2'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DemoOptions_3'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DemoOptions_4'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DemoOptions_5'))).click()
+                    # -----------------------------------
+                    # Checkboxes
+                    # -----------------------------------
 
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_FinAidOptions_0'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_FinAidOptions_1'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_FinAidOptions_2'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_FinAidOptions_3'))).click()
-                        short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_FinAidOptions_4'))).click()
-                        logger.info('Checkboxes selected')
-                    else:
-                        logger.info('Checkboxes already selected')
+                    # create a True, False list
+                    # trim if > required
+                    checkboxes = checkboxes[:11]
+                    checks = _process_checboxes(checkboxes)
+                    logger.info(checks)
+
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DemoOptions_0', checks[0])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DemoOptions_1', checks[1])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DemoOptions_2', checks[2])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DemoOptions_3', checks[3])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DemoOptions_4', checks[4])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DemoOptions_5', checks[5])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_FinAidOptions_0', checks[6])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_FinAidOptions_1', checks[7])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_FinAidOptions_2', checks[8])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_FinAidOptions_3', checks[9])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_FinAidOptions_4', checks[10])
+
+                    logger.info('Checkboxes selected')
 
                     # click update report
                     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport'))).click()
@@ -424,16 +430,19 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')),
                                message='element not clickable').click()
 
-                    file_name = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.csv'
+                    file_name = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + \
+                                '-' + checkboxes + '.csv'
                     _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED_COHORT)
 
                     if convert:
-                        file_name_xlsx = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.xlsx'
+                        file_name_xlsx = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + \
+                                         '-' + checkboxes + '.xlsx'
                         _convert_to_xlsx(os.path.join(down_college_specific, file_name),
                                          os.path.join(down_college_specific, file_name_xlsx))
 
                     if screen_cap:
-                        s = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + '.png'
+                        s = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + \
+                            '-' + checkboxes + '.png'
                         driver.save_screenshot(os.path.join(down_college_specific, s))
 
                     # append level scraped
@@ -473,7 +482,8 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
         raise Exception('Failed skills and level 10 times')
 
 
-def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_type, cohort_year, years_transfer):
+def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_type, cohort_year,
+                    years_transfer, checkboxes):
 
     wait = WebDriverWait(driver, 10)
 
@@ -580,41 +590,42 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
                 _wait_until_loaded(wait_to_load, driver)
                 time.sleep(2)
 
+                # -----------------------------------
+                # Checkboxes
+                # -----------------------------------
+
+                # create a True, False list
+                # trim if > required
+                checkboxes = checkboxes[:9]
+                checks = _process_checboxes(checkboxes)
+                logger.info(checks)
+
                 # checkboxes
                 if search_type == 'Collegewide Search':
 
-                    checked = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_0')))
-
-                    if not checked.is_selected():
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_0'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_2'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_3'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_4'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_0'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_1'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_2'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_3'))).click()
-                        logger.info('Checkboxes selected')
-                    else:
-                        logger.info('Checkboxes already selected')
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_0', checks[0])
+                    # _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_1', checks[1])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_2', checks[2])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_3', checks[3])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_4', checks[4])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_0', checks[5])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_1', checks[6])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_2', checks[7])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_3', checks[8])
+                    logger.info('Checkboxes selected')
 
                 elif search_type == 'Districtwide Search':
 
-                    checked = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_1')))
-
-                    if not checked.is_selected():
-                        # click checkboxes
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_1'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_2'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_3'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_DCOptions_4'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_0'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_1'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_2'))).click()
-                        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_SpecialOptions_3'))).click()
-                        logger.info('Checkboxes selected')
-                    else:
-                        logger.info('Checkboxes already selected')
+                    # _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_0', checks[0])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_1', checks[1])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_2', checks[2])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_3', checks[3])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_4', checks[4])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_0', checks[5])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_1', checks[6])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_2', checks[7])
+                    _process_individual_checkbox(driver, '#ASPxRoundPanel3_SpecialOptions_3', checks[8])
+                    logger.info('Checkboxes selected')
 
                 # click update report
                 wait.until(
@@ -637,16 +648,16 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
                 # files
                 # ----------------
 
-                file_name = search_type + '-' + cohort_year + '-' + file_part_year + '.csv'
+                file_name = search_type + '-' + cohort_year + '-' + file_part_year + '-' + checkboxes + '.csv'
                 _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED_TRANSFER)
 
                 if convert:
-                    file_name_xlsx = search_type + '-' + cohort_year + '-' + file_part_year + '.xlsx'
+                    file_name_xlsx = search_type + '-' + cohort_year + '-' + file_part_year + '-' + checkboxes + '.xlsx'
                     _convert_to_xlsx(os.path.join(down_college_specific, file_name),
                                      os.path.join(down_college_specific, file_name_xlsx))
 
                 if screen_cap:
-                    s = search_type + '-' + cohort_year + '-' + file_part_year + '.png'
+                    s = search_type + '-' + cohort_year + '-' + file_part_year + '-' + checkboxes + '.png'
                     driver.save_screenshot(os.path.join(down_college_specific, s))
 
                 # append year scraped
@@ -1103,7 +1114,7 @@ if __name__ == '__main__':
                     # -------------------------------------------------------
 
                     scraped_college = scrape_cohort(c, screen_cap, driver, cohort_term, end_term, level,
-                                                    convert, basic_skills_subject)
+                                                    convert, basic_skills_subject, checkboxes)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
@@ -1179,7 +1190,7 @@ if __name__ == '__main__':
                     driver.set_page_load_timeout(3600)
 
                     scraped_college = scrape_transfer(c, wait_to_load, screen_cap, driver, convert, search_type,
-                                                      cohort_year, years_transfer)
+                                                      cohort_year, years_transfer, checkboxes)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break

@@ -17,7 +17,7 @@ scrape only a specific college.
 * --convert :  to create a xlsx file
 * -u, --url : set to: "course success" (or don't pass in as it's set by ***default***)
 * --search-type: set to: "Collegewide Search" (***default***) , "Districtwide Search" or "Statewide Search"
-* --checkboxes: whether to select checboxes or not (***default*** - 000000000000000 - all unchecked)
+* --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
 *Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
 
 ## Examples:
@@ -46,13 +46,17 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 * --convert : to convert csv to xlsx (***default*** is false; dont convert)
 * --level : to scrape a specific cohort level e.g. "One Level Below Transfer" (***default*** is All)
 * --skills-subject : English - Writing, ESL - Listening etc. or Process All (***default***)
+* --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
+*Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
 
 ## Example:
 ``` python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s ```
 </br>
 ```python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s --level "One Level Below Transfer" --convert```
 </br>
-```python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s --level "One Level Below Transfer" --skills-subject Mathematics --convert```
+```python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s --level "One Level Below Transfer" --skills-subject Mathematics --convert --checkboxes 11111111111```
+
+
 # Scrape transfer
 ## arguments:
 ***default - the argument is not passed in*** 
@@ -62,9 +66,12 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 * --search-type: set to: "Collegewide Search" (***default***) or "Districtwide Search" 
 *Note: Statewide Search - no data available for this search*
 * --years-transfer : 4 Years etc. or Process All (***default***)
+* --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
+*Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
+
 ## Example:
 ```python run.py -u transfer -c Alameda --convert --cohort-year 1995-1996 -r 5```
 </br>
 ```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search"```
 </br>
-```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search" --years-transfer "4 Years"```
+```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search" --years-transfer "4 Years" --checkboxes 111111111```
