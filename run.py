@@ -62,7 +62,7 @@ def get_driver(url):
     return driver
 
 
-def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
+def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, checks):
 
     wait = WebDriverWait(driver, 10)
 
@@ -120,11 +120,29 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
     _wait_until_loaded(wait_to_load, driver)
     time.sleep(2)
 
-    # click checkboxes
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_TopOptions_0'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_TopOptions_1'))).click()
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel3_TopOptions_2'))).click()
-    logger.info('Checkboxes selected')
+    # -----------------------------------
+    # Checkboxes
+    # -----------------------------------
+
+    # Demographic Options
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_0', checks[0])
+    # _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_1', checks[1])  # disabled
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_2', checks[2])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_3', checks[3])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_4', checks[4])
+
+    # TOP Options
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_0', checks[5])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_1', checks[6])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_2', checks[7])
+
+    # Course Status
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_0', checks[8])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_1', checks[8])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_2', checks[10])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_3', checks[11])
+
+    logger.info('Checkboxes complete')
 
     # click update report
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
@@ -147,8 +165,10 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type):
     logger.info('click export to csv --> browser starts downloading')
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')), message='element not clickable').click()
 
+    # copy file
     _move_file(DOWN_PATH, down_college_specific)
 
+    # convert to xlsx
     if convert:
         _convert_to_xlsx(os.path.join(down_college_specific, DOWNLOADED),
                          os.path.join(down_college_specific, DOWNLOADED_XLSX))
@@ -860,6 +880,27 @@ def _clean_up():
             logger.info('Deleted: {}'.format(clean_file))
 
 
+def _process_checboxes(checboxes):
+    numbs = []
+    for num in checboxes:
+        if num == '0':
+            numbs.append(False)
+        else:
+            numbs.append(True)
+    return numbs
+
+
+def _process_individual_checkbox(driver, locator, checked):
+
+    el = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, locator)))
+    if checked and not el.is_selected():
+        el.click()
+    elif not checked and el.is_selected():
+        el.click()
+    else:
+        logger.debug('Checkbox as default')
+
+
 if __name__ == '__main__':
     verbose = None
     log_file = None
@@ -881,6 +922,10 @@ if __name__ == '__main__':
     years_transfer = 'Process All'
     basic_skills_subject = 'Process All'
 
+    # checkboxed default
+    # > than max. checboxes on any report
+    checkboxes = "000000000000000"
+
     console = logging.StreamHandler(stream=sys.stdout)
     logger.addHandler(console)
     ch = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -890,7 +935,8 @@ if __name__ == '__main__':
     opts, args = getopt.getopt(argv, "vc:lpsr:u:", ["verbose", "college=", 'log-file', 'print-college',
                                                     'screen-capture', "retry=", "url=", "cohort-term=",
                                                     "end-term=", 'level=', 'convert', 'search-type=',
-                                                    "cohort-year=", "years-transfer=", "skills-subject="])
+                                                    "cohort-year=", "years-transfer=", "skills-subject=",
+                                                    "checkboxes="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -927,6 +973,8 @@ if __name__ == '__main__':
             years_transfer = arg
         elif opt in "--skills-subject":
             basic_skills_subject = arg
+        elif opt in "--checkboxes":
+            checkboxes = arg
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -943,6 +991,11 @@ if __name__ == '__main__':
     logger.info('CLI args: {}'.format(opts))
     logger.info('DOWN_PATH: {}'.format(DOWN_PATH))
     logger.info('RETRY: {}'.format(retry))
+
+    # create a True,False list
+    checks = _process_checboxes(checkboxes)
+    logger.debug('Checkboxes:')
+    logger.debug(checks)
 
     # ---------------------------------------
     # course page
@@ -982,7 +1035,7 @@ if __name__ == '__main__':
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
 
-                    scraped_college = scrape(c, wait_to_load, screen_cap, driver, convert, search_type)
+                    scraped_college = scrape(c, wait_to_load, screen_cap, driver, convert, search_type, checks)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break

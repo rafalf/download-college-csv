@@ -17,6 +17,8 @@ scrape only a specific college.
 * --convert :  to create a xlsx file
 * -u, --url : set to: "course success" (or don't pass in as it's set by ***default***)
 * --search-type: set to: "Collegewide Search" (***default***) , "Districtwide Search" or "Statewide Search"
+* --checkboxes: whether to select checboxes or not (***default*** - 000000000000000 - all unchecked)
+*Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
 
 ## Examples:
 ``` python run.py -l -r 10 -v -s``` - scrape all colleges, log into a file in the verbose mode, 
@@ -29,6 +31,8 @@ retry up 10 times to scrape data and save a screencap right before the export to
 ```python run.py -c Alameda --convert``` - scrape Alameda and create a xlsx file
 </br>
 ```python run.py -c "Allan Hancock CCD" --search-type "Districtwide Search"```
+</br>
+```-c Alameda --convert --checkboxes 111101111011```
 
 # Scrape basic skills:
 ## arguments: 
