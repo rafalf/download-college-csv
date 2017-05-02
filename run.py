@@ -486,6 +486,7 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
                     years_transfer, checkboxes):
 
     wait = WebDriverWait(driver, 10)
+    short_wait = WebDriverWait(driver, 2)
 
     for counter in range(5):
 
@@ -502,14 +503,25 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
             wait.until(EC.presence_of_element_located((By.ID, college_id)))
             js_script = "document.getElementById('{}').click();".format(college_id)
             driver.execute_script(js_script)
+
+            el_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
+            el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
+            college_name = el.text
+
+            # checked - check span.class name
+            el_input_css = "#ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}C" \
+                           " span.dxWeb_edtCheckBoxChecked_Aqua".format(college)
+            short_wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, el_input_css)))
+
+            if college_name == '':
+                logger.info("College name not picked up.")
+                raise Exception('College name not picked up')
+            else:
+                logger.info("Selected college: ({}): {}".format(college, el.text))
+
             break
         except:
             logger.info('Failed. Retry up to 5 times to select the college --> ({})'.format(counter))
-
-    el_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
-    el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
-    logger.info("Selected college: ({}): {}".format(college, el.text))
-    college_name = el.text
 
     # create the transfer folder
     down_college_specific = os.path.join(DOWN_PATH, college_name, 'transfer')
@@ -1042,6 +1054,9 @@ if __name__ == '__main__':
 
         for c in scr_:
 
+            _write_row(["***********", "***********", "***********", "***********"])
+            _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), "Start", c, ""])
+
             for retry_attempts in range(retry):
                 try:
                     _clean_up()
@@ -1102,6 +1117,10 @@ if __name__ == '__main__':
         logger.info(scr_)
 
         for c in scr_:
+
+            _write_row(["***********", "***********", "***********", "***********"])
+            _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), "Start", c, ""])
+
             for retry_attempts in range(retry):
                 try:
                     _clean_up()
@@ -1181,6 +1200,9 @@ if __name__ == '__main__':
         logger.info(scr_)
 
         for c in scr_:
+
+            _write_row(["***********", "***********", "***********", "***********"])
+            _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), "Start", c, ""])
 
             for retry_attempts in range(retry):
                 try:
