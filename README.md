@@ -89,7 +89,7 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 * --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
 *Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
 * --special-population e.g. "EOPS - Extended Opportunity Programs & Services"
-*Note: to get all available special population pass in a non existing population e.g. --special-population "Only Print Out"
+*Note: to get all available special population pass in a non existing population e.g. --special-population "Only Print Out"*
 
 ## Examples:
 ``` python run.py -u "retention success" -l -r 10 -v -s -search-type "Districtwide Search" --special-population "EOPS - Extended Opportunity Programs & Services" ``` - scrape all colleges, log into a file in the verbose mode, 
