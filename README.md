@@ -48,7 +48,8 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 * --skills-subject : English - Writing, ESL - Listening etc. or Process All (***default***)
 * --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
 *Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
-
+* --expand-collapse : 0 - collapse, 1 - expand e.g. 01 - collapse 1st heading element and make sure the second is expanded
+(***default*** - don't change it)
 ## Example:
 ``` python run.py -u "basic skills" -c Alameda --cohort-term "Summer 2009" --end-term "Winter 2017" -s ```
 </br>

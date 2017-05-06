@@ -62,7 +62,7 @@ def get_driver(url):
     return driver
 
 
-def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, checkboxes):
+def scrape_course_success(college, wait_to_load, screen_cap, driver, convert, search_type, checkboxes):
 
     wait = WebDriverWait(driver, 10)
 
@@ -127,7 +127,7 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, chec
     # create a True, False list
     # trim if > required
     checkboxes = checkboxes[:12]
-    checks = _process_checboxes(checkboxes)
+    checks = _process_binary(checkboxes)
     logger.info(checks)
 
     # Demographic Options
@@ -185,7 +185,8 @@ def scrape(college, wait_to_load, screen_cap, driver, convert, search_type, chec
     return college_name
 
 
-def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, convert, basic_skills_subject, checkboxes):
+def scrape_basic_skills(college, screen_cap, driver, cohort_term, end_term, level, convert, basic_skills_subject,
+                        checkboxes, expand_collapse):
 
     wait = WebDriverWait(driver, 10)
     short_wait = WebDriverWait(driver, 3)
@@ -335,7 +336,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                 elif basic_skills_subject != 'Process All' and basic_skills_subject != file_part_skill:
                     skill_scraped.append(file_part_skill)
                     logger.info('Skill add to scraped: {}'.format(file_part_skill))
-                    logger.info('{} != Process All. Current year: {}'.
+                    logger.info('{} != Process All. Current skill: {}'.
                                 format(basic_skills_subject, file_part_skill))
                     continue
                 else:
@@ -395,7 +396,7 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                     # create a True, False list
                     # trim if > required
                     checkboxes = checkboxes[:11]
-                    checks = _process_checboxes(checkboxes)
+                    checks = _process_binary(checkboxes)
                     logger.info(checks)
 
                     _process_individual_checkbox(driver, '#ASPxRoundPanel3_DemoOptions_0', checks[0])
@@ -418,6 +419,18 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
 
                     _wait_until_loaded(wait_to_load, driver)
                     time.sleep(2)
+
+                    # -----------------------------------
+                    # Expand collapse
+                    # -----------------------------------
+
+                    if expand_collapse != 'Default':
+                        logger.info('Expand/Collapse: {}'.format(expand_collapse))
+                        _process_expandable(driver, _process_binary(expand_collapse), logger)
+
+                    # -----------------------------------
+                    # csv
+                    # -----------------------------------
 
                     # click csv
                     logger.info('About to click export to csv')
@@ -458,15 +471,15 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
                 skill_scraped.append(file_part_skill)
                 logger.info('DONE: added {} to skill scraped'.format(file_part_skill))
 
-                if len(skill_scraped) == len(all_skills):
-                    logger.info('SUCCESS: all skills scraped:')
-                    logger.info(skill_scraped)
-                    return college_name
-
                 # basic skills - all
                 wait.until(EC.element_to_be_clickable(
                     (By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxBSSub_B-1'))).click()
                 time.sleep(2)
+
+            if len(skill_scraped) == len(all_skills):
+                logger.info('SUCCESS: all skills scraped:')
+                logger.info(skill_scraped)
+                return college_name
 
         except UnexpectedAlertPresentException:
             logger.info('UnexpectedAlertPresentException: accepting alert')
@@ -474,6 +487,8 @@ def scrape_cohort(college, screen_cap, driver, cohort_term, end_term, level, con
             level_scraped.append(file_part_skill + " " + file_part_level)
             logger.info('Add scraped level: {}'.format(file_part_skill + " " + file_part_level))
             continue
+        except ExitException:
+            raise ExitException('Internal ExitException')
         except:
             logger.info('Retry expand end term')
 
@@ -609,7 +624,7 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
                 # create a True, False list
                 # trim if > required
                 checkboxes = checkboxes[:9]
-                checks = _process_checboxes(checkboxes)
+                checks = _process_binary(checkboxes)
                 logger.info(checks)
 
                 # checkboxes
@@ -911,9 +926,9 @@ def _clean_up():
             logger.info('Deleted: {}'.format(clean_file))
 
 
-def _process_checboxes(checboxes):
+def _process_binary(binary):
     numbs = []
-    for num in checboxes:
+    for num in binary:
         if num == '0':
             numbs.append(False)
         else:
@@ -930,6 +945,42 @@ def _process_individual_checkbox(driver, locator, checked):
         el.click()
     else:
         logger.debug('Checkbox as default')
+
+
+def _process_expandable(driver, expandables, logger):
+
+    all_locator = "#ASPxRoundPanel3_ASPxPivotGrid1_CVSCell_SCDTable tr:nth-of-type(2) td img"
+    all_els = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_locator)))
+
+    if len(expandables) != len(all_els):
+        logger.info('Number of Expand/Collapse Script elements ({}) != Expand/Collapse Web ({})'.
+                    format(len(expand_collapse), len(all_els)))
+        logger.info('Please correct your script and pass in --expand-collapse {} value(s): (0,1) e.g. 00, 01'.format(len(all_els)))
+        raise ExitException('Expand/Collapse Web elements match failed')
+    else:
+        logger.debug('Number of Expand/Collapse Script elements ({}) = Expand/Collapse Web ({})'.
+                    format(len(expand_collapse), len(all_els)))
+
+    for counter, el_ in enumerate(all_els):
+
+        # must get every time as elements
+        # change after expand/collapse clicked
+        all_ = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_locator)))
+        el_ = all_[counter]
+
+        class_ = el_.get_attribute('class')
+        expanded = expandables[counter]
+
+        if class_.count('dxPivotGrid_pgCollapsedButton_Aqua') and expanded:
+            el_.click()
+            _wait_until_loaded(30, driver)
+        elif class_.count('dxPivotGrid_pgExpandedButton_Aqua') and not expanded:
+            el_.click()
+            _wait_until_loaded(30, driver)
+        else:
+            logger.debug('Expand/collapse as default')
+
+
 
 
 if __name__ == '__main__':
@@ -952,6 +1003,7 @@ if __name__ == '__main__':
     cohort_year = 'Select All'
     years_transfer = 'Process All'
     basic_skills_subject = 'Process All'
+    expand_collapse = 'Default'
 
     # checkboxed default
     # > than max. checboxes on any report
@@ -967,7 +1019,7 @@ if __name__ == '__main__':
                                                     'screen-capture', "retry=", "url=", "cohort-term=",
                                                     "end-term=", 'level=', 'convert', 'search-type=',
                                                     "cohort-year=", "years-transfer=", "skills-subject=",
-                                                    "checkboxes="])
+                                                    "checkboxes=", "expand-collapse="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -1006,6 +1058,8 @@ if __name__ == '__main__':
             basic_skills_subject = arg
         elif opt in "--checkboxes":
             checkboxes = arg
+        elif opt in "--expand-collapse":
+            expand_collapse = arg
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -1064,7 +1118,8 @@ if __name__ == '__main__':
                     driver = get_driver(scrape_url)
                     driver.set_page_load_timeout(3600)
 
-                    scraped_college = scrape(c, wait_to_load, screen_cap, driver, convert, search_type, checkboxes)
+                    scraped_college = scrape_course_success(c, wait_to_load, screen_cap, driver, convert, search_type,
+                                                            checkboxes)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
@@ -1132,8 +1187,8 @@ if __name__ == '__main__':
                     # scrape
                     # -------------------------------------------------------
 
-                    scraped_college = scrape_cohort(c, screen_cap, driver, cohort_term, end_term, level,
-                                                    convert, basic_skills_subject, checkboxes)
+                    scraped_college = scrape_basic_skills(c, screen_cap, driver, cohort_term, end_term, level,
+                                                    convert, basic_skills_subject, checkboxes, expand_collapse)
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
                     break
@@ -1150,7 +1205,7 @@ if __name__ == '__main__':
                     logger.debug('err: ', exc_info=True)
                     result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
                 except ExitException:
-                    logger.info('Data not available for specified college and cohort. Exit')
+                    logger.info('Data not available for specified data. Exit')
                     logger.debug('ExitException. Exit')
                     logger.debug('err: ', exc_info=True)
                     result = 'ExitException: Data not available'
