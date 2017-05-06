@@ -11,8 +11,6 @@
 * -c, --college : pass in a college name e.g. -c Alameda (if not provided, all colleges scraped)
 * -p, --print-college : to print out all available colleges
 * -s, --screen-capture : to save a screenshot of the browser before the csv file is downloaded
-* -p, --print-college : to print all available colleges with their ids. ids are used to pass as an argument when we want to
-scrape only a specific college.
 * -r, --retry : to set how many times the script will retry to scrape/download data. (***default*** = 3).
 * --convert :  to create a xlsx file
 * -u, --url : set to: "course success" (or don't pass in as it's set by ***default***)
@@ -76,3 +74,27 @@ As before however 2 new arguments are introduced to narrow down search criteria:
 ```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search"```
 </br>
 ```python run.py -u transfer -c "Cabrillo CCD" --convert --cohort-year 1995-1996 -v --search-type "Districtwide Search" --years-transfer "4 Years" --checkboxes 111111111```
+
+# Scrape retention success:
+## arguments:
+***default - the argument is not passed in*** 
+* -u, --url : retention success
+* -v, --verbose : to run in the verbose mode (debug logger)
+* -c, --college : pass in a college name e.g. -c Alameda (if not provided, all colleges scraped)
+* -p, --print-college : to print out all available colleges
+* -s, --screen-capture : to save a screenshot of the browser before the csv file is downloaded
+* -r, --retry : to set how many times the script will retry to scrape/download data. (***default*** = 3).
+* --convert :  to create a xlsx file
+* --search-type: set to: "Collegewide Search" (***default***) , "Districtwide Search" or "Statewide Search"
+* --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
+*Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
+* --special-population e.g. "EOPS - Extended Opportunity Programs & Services"
+*Note: to get all available special population pass in a non existing population e.g. --special-population "Only Print Out"
+
+## Examples:
+``` python run.py -u "retention success" -l -r 10 -v -s -search-type "Districtwide Search" --special-population "EOPS - Extended Opportunity Programs & Services" ``` - scrape all colleges, log into a file in the verbose mode, 
+retry up 10 times to scrape data and save a screencap right before the export to csv is cliked upon
+</br>
+```python run.py -u "retention success" -c Alameda --convert --special-population "EOPS - Extended Opportunity Programs & Services"``` - scrape Alameda college
+</br>
+```python run.py -u "retention success" -c "Allan Hancock CCD" --search-type "Districtwide Search" --special-population "EOPS - Extended Opportunity Programs & Services" --checkboxes 111101111011```

@@ -35,6 +35,10 @@ DOWNLOADED_COHORT_PARTIAL = 'BSkillsProgressTracker.csv.crdownload'
 DOWNLOADED_TRANSFER = 'TransferVelocity.csv'
 DOWNLOADED_TRANSFER_PARTIAL = 'TransferVelocity.csv.crdownload'
 
+DOWNLOADED_SPECIAL = 'CourseRetSuccessSummSpecialPop.csv'
+DOWNLOADED_SPECIAL_PARTIAL = 'CourseRetSuccessSummSpecialPop.csv.crdownload'
+DOWNLOADED_SPECIAL_XLSX = 'CourseRetSuccessSummSpecialPop.xlsx'
+
 LOGS = os.path.join(FILE_DIR, 'logs')
 SCRAPE_LOG = os.path.join(LOGS, 'scrape.csv')
 
@@ -176,6 +180,164 @@ def scrape_course_success(college, wait_to_load, screen_cap, driver, convert, se
     file_name_csv = DOWNLOADED[:-4] + "-" + checkboxes + '.csv'
     file_name_xlsx = DOWNLOADED_XLSX[:-5] + "-" + checkboxes + '.xlsx'
     _move_file_specific(DOWN_PATH, down_college_specific, file_name_csv, DOWNLOADED)
+
+    # convert to xlsx
+    if convert:
+        _convert_to_xlsx(os.path.join(down_college_specific, file_name_csv),
+                         os.path.join(down_college_specific, file_name_xlsx))
+
+    return college_name
+
+
+def scrape_retention_success(college, wait_to_load, screen_cap, driver, convert, search_type, checkboxes,
+                             special_population):
+
+    wait = WebDriverWait(driver, 10)
+
+    for counter in range(5):
+
+        try:
+            driver.refresh()
+
+            select_search_type(search_type)
+
+            # college
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditDistColl'))).click()
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.dxeListBoxItemRow_Aqua')))
+
+            college_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
+            wait.until(EC.presence_of_element_located((By.ID, college_id)))
+            js_script = "document.getElementById('{}').click();".format(college_id)
+            driver.execute_script(js_script)
+            break
+        except:
+            logger.info('Failed. Retry up to 5 times to select the college --> ({})'.format(counter))
+
+    el_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
+    el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
+    logger.info("Selected college: ({}): {}".format(college, el.text))
+    college_name = el.text
+
+    down_college_specific = os.path.join(DOWN_PATH, college_name, 'retention success')
+    if not os.path.isdir(down_college_specific):
+        os.makedirs(down_college_specific)
+        logger.info("Created folder: {}".format(down_college_specific))
+
+    # term
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditTerm'))).click()
+    term_id = "ASPxRoundPanel1_ASPxDropDownEditTerm_DDD_DDTC_checkListBoxTerm_LBI0T1"
+    js_script = "document.getElementById('{}').click();".format(term_id)
+    driver.execute_script(js_script)
+
+    # type program
+    type_id = "ASPxRoundPanel1_ASPxDropDownEditTOP_DDD_DDTC_ASPxCallbackPanel1_ASPxTreeView1_CHK0"
+    js_script = "document.getElementById('{}').click();".format(type_id)
+    driver.execute_script(js_script)
+
+    # instruction
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxIMType'))).click()
+    instruction_id = "ASPxRoundPanel1_ASPxComboBoxIMType_DDD_L_LBI0T0"
+    wait.until(EC.element_to_be_clickable((By.ID, instruction_id))).click()
+
+    for _ in range(5):
+
+        # expand populations
+        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditSP_B-1Img'))).click()
+        time.sleep(2)
+
+        all_populations_sel = "#ASPxRoundPanel1_ASPxDropDownEditSP_DDD_DDTC_checkListBoxSP_D .dxeListBoxItemRow_Aqua .dxeT"
+        all_populations = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_populations_sel)))
+
+        available_populations = []
+        nth_to_select = None
+
+        logger.info('Available populations:')
+        for counter, pop in enumerate(all_populations[1:]):
+            logger.info(pop.text)
+            available_populations.append(pop.text.strip())
+            if pop.text.strip() == special_population:
+                nth_to_select = counter
+                logger.info('Special population found: {}'.format(special_population))
+
+        if nth_to_select:
+            js_script = "document.querySelector('#ASPxRoundPanel1_ASPxDropDownEditSP_DDD_DDTC_checkListBoxSP_D" \
+                        " .dxeListBoxItemRow_Aqua:nth-of-type({}) input').click();".format(nth_to_select + 1)
+            driver.execute_script(js_script)
+            logger.info('Special population selected: {}'.format(special_population))
+            break
+
+        if available_populations.count('') > 1:
+            logger.info('Special population not expanded')
+            continue
+        else:
+            logger.info('Did not find program/special population: {}'.format(special_population))
+            raise ExitException('Did not find program/special population')
+    else:
+        logger.info('Failed special population term 5 times')
+        raise Exception('Failed special population term 5 times')
+
+    # click view report
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
+    js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();"
+    driver.execute_script(js_script)
+    logger.info('View report clicked')
+
+    _wait_until_loaded(wait_to_load, driver)
+    time.sleep(2)
+
+    # -----------------------------------
+    # Checkboxes
+    # -----------------------------------
+
+    # create a True, False list
+    # trim if > required
+    checkboxes = checkboxes[:9]
+    checks = _process_binary(checkboxes)
+    logger.info(checks)
+
+    # Demographic Options
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_0', checks[0])  # disabled
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_1', checks[1])
+
+    # TOP Options
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_0', checks[2])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_1', checks[3])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_2', checks[4])
+
+    # Course Status
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_0', checks[5])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_1', checks[6])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_2', checks[7])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_CourseOptions_3', checks[8])
+
+    logger.info('Checkboxes complete')
+
+    # click update report
+    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
+    logger.info('Update selected')
+
+    _wait_until_loaded(wait_to_load, driver)
+    time.sleep(2)
+
+    # click csv
+    logger.info('About to click export to csv')
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
+    logger.info('Export to csv clicked')
+
+    if screen_cap:
+        file_name_png = DOWNLOADED_SPECIAL[:-4] + "-" + special_population + '-' + checkboxes + '.png'
+        driver.save_screenshot(os.path.join(down_college_specific, file_name_png))
+
+    time.sleep(2)
+
+    # click export as
+    logger.info('Click export to csv --> browser starts downloading')
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD'))).click()
+
+    # copy file
+    file_name_csv = DOWNLOADED_SPECIAL[:-4] + "-" + special_population + "-" + checkboxes + '.csv'
+    file_name_xlsx = DOWNLOADED_SPECIAL_XLSX[:-5] + "-" + special_population + "-" + checkboxes + '.xlsx'
+    _move_file_specific(DOWN_PATH, down_college_specific, file_name_csv, DOWNLOADED_SPECIAL)
 
     # convert to xlsx
     if convert:
@@ -918,7 +1080,7 @@ def _clean_up():
     # -------------------------------------------------------
 
     files = [DOWNLOADED, DOWNLOADED_PARTIAL, DOWNLOADED_COHORT, DOWNLOADED_COHORT_PARTIAL,
-             DOWNLOADED_TRANSFER, DOWNLOADED_TRANSFER_PARTIAL]
+             DOWNLOADED_TRANSFER, DOWNLOADED_TRANSFER_PARTIAL, DOWNLOADED_SPECIAL, DOWNLOADED_SPECIAL_PARTIAL]
 
     for clean_file in files:
         if os.path.isfile(os.path.join(DOWN_PATH, clean_file)):
@@ -938,10 +1100,12 @@ def _process_binary(binary):
 
 def _process_individual_checkbox(driver, locator, checked):
 
-    el = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, locator)))
-    if checked and not el.is_selected():
+    el = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, locator)))
+    if checked and not el.is_selected() and el.is_enabled():
+        el = WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.CSS_SELECTOR, locator)))
         el.click()
-    elif not checked and el.is_selected():
+    elif not checked and el.is_selected() and el.is_enabled():
+        el = WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.CSS_SELECTOR, locator)))
         el.click()
     else:
         logger.debug('Checkbox as default')
@@ -1004,6 +1168,7 @@ if __name__ == '__main__':
     years_transfer = 'Process All'
     basic_skills_subject = 'Process All'
     expand_collapse = 'Default'
+    special_population = 'Select All'
 
     # checkboxed default
     # > than max. checboxes on any report
@@ -1019,7 +1184,7 @@ if __name__ == '__main__':
                                                     'screen-capture', "retry=", "url=", "cohort-term=",
                                                     "end-term=", 'level=', 'convert', 'search-type=',
                                                     "cohort-year=", "years-transfer=", "skills-subject=",
-                                                    "checkboxes=", "expand-collapse="])
+                                                    "checkboxes=", "expand-collapse=", "special-population="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -1040,6 +1205,9 @@ if __name__ == '__main__':
             elif arg == 'transfer':
                 scrape_url = 'http://datamart.cccco.edu/Outcomes/Transfer_Velocity.aspx'
                 scrape_page = 'transfer'
+            elif arg == 'retention success':
+                scrape_url = 'http://datamart.cccco.edu/Outcomes/Course_Ret_Success_SP.aspx'
+                scrape_page = 'retention success'
         elif opt in "--cohort-term":
             cohort_term = arg
         elif opt in "--end-term":
@@ -1060,6 +1228,8 @@ if __name__ == '__main__':
             checkboxes = arg
         elif opt in "--expand-collapse":
             expand_collapse = arg
+        elif opt in "--special-population":
+            special_population = arg
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -1205,7 +1375,7 @@ if __name__ == '__main__':
                     logger.debug('err: ', exc_info=True)
                     result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
                 except ExitException:
-                    logger.info('Data not available for specified data. Exit')
+                    logger.info('Data not available for the provided arguments. Exit')
                     logger.debug('ExitException. Exit')
                     logger.debug('err: ', exc_info=True)
                     result = 'ExitException: Data not available'
@@ -1284,7 +1454,83 @@ if __name__ == '__main__':
                     logger.debug('err: ', exc_info=True)
                     result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
                 except ExitException:
-                    logger.info('Data not available for specified college and cohort year. Exit')
+                    logger.info('Data not available for the provided arguments. Exit')
+                    logger.debug('ExitException. Exit')
+                    logger.debug('err: ', exc_info=True)
+                    result = 'ExitException: Data not available'
+                    sys.exit(0)
+                except:
+                    logger.warning('UndefinedException. Retry up to {} times'.format(retry))
+                    logger.debug('err: ', exc_info=True)
+                    result = 'UndefinedException ({})'.format(retry_attempts)
+                finally:
+                    _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), result, c, scraped_college])
+                    if retry_attempts == retry - 1:
+                        _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), 'Failed', c, scraped_college])
+                    driver.close()
+                    driver.quit()
+
+    # ---------------------------------------
+    # retention success
+    # http://datamart.cccco.edu/Outcomes/Course_Ret_Success.aspx
+    # ---------------------------------------
+
+    if scrape_page == 'retention success':
+
+        if search_type not in available_searches:
+            logger.info('Search not found: {}. No data available.'.format(search_type))
+            sys.exit(0)
+
+        driver = get_driver(scrape_url)
+        all_colleges = print_all_colleges(driver, search_type)
+        driver.quit()
+        if print_col:
+            sys.exit(0)
+
+        if college == "all":
+            scr_ = [all_colleges[key] for key in all_colleges]
+        else:
+            try:
+                scr_ = [all_colleges[college]]
+            except KeyError:
+                logger.info('College not found: {}. No data available.'.format(college))
+                sys.exit(0)
+
+        logger.info('Ids to scrape:')
+        logger.info(scr_)
+
+        for c in scr_:
+
+            _write_row(["***********", "***********", "***********", "***********"])
+            _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), "Start", c, ""])
+
+            for retry_attempts in range(retry):
+                try:
+                    _clean_up()
+
+                    driver = get_driver(scrape_url)
+                    driver.set_page_load_timeout(3600)
+
+                    scraped_college = scrape_retention_success(c, wait_to_load, screen_cap, driver, convert, search_type,
+                                                            checkboxes, special_population)
+                    logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
+                    result = 'Complete'
+                    break
+                except TimeoutException:
+                    logger.warning('TimeoutException. Retry up to {} times'.format(retry))
+                    logger.debug('err: ', exc_info=True)
+                    result = 'TimeoutException ({})'.format(retry_attempts)
+                except StaleElementReferenceException:
+                    logger.warning('StaleElementReferenceException. Retry up to {} times'.format(retry))
+                    logger.debug('err: ', exc_info=True)
+                    result = 'StaleElementReferenceException ({})'.format(retry_attempts)
+                except UnexpectedAlertPresentException:
+                    logger.warning('UnexpectedAlertPresentException. Retry up to {} times'.format(retry))
+                    logger.info('Possibly no data available for selected filters')
+                    logger.debug('err: ', exc_info=True)
+                    result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
+                except ExitException:
+                    logger.info('Data not available for the provided arguments. Exit')
                     logger.debug('ExitException. Exit')
                     logger.debug('err: ', exc_info=True)
                     result = 'ExitException: Data not available'
