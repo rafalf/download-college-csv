@@ -586,8 +586,8 @@ def scrape_basic_skills(college, screen_cap, driver, cohort_term, end_term, leve
                     # Expand collapse
                     # -----------------------------------
 
-                    if expand_collapse != 'Default':
-                        logger.info('Expand/Collapse: {}'.format(expand_collapse))
+                    logger.info('Expand/Collapse: {}'.format(expand_collapse))
+                    if expand_collapse != 'default':
                         _process_expandable(driver, _process_binary(expand_collapse), logger)
 
                     # -----------------------------------
@@ -605,20 +605,20 @@ def scrape_basic_skills(college, screen_cap, driver, cohort_term, end_term, leve
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')),
                                message='element not clickable').click()
 
-                    file_name = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + \
-                                '-' + checkboxes + '.csv'
-                    _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED_COHORT)
+                    core_file_name = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + \
+                        '-' + checkboxes + '-exp-' + expand_collapse
+
+                    file_name_csv = core_file_name + '.csv'
+                    _move_file_specific(DOWN_PATH, down_college_specific, file_name_csv, DOWNLOADED_COHORT)
 
                     if convert:
-                        file_name_xlsx = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + \
-                                         '-' + checkboxes + '.xlsx'
-                        _convert_to_xlsx(os.path.join(down_college_specific, file_name),
+                        file_name_xlsx = core_file_name + '.xlsx'
+                        _convert_to_xlsx(os.path.join(down_college_specific, file_name_csv),
                                          os.path.join(down_college_specific, file_name_xlsx))
 
                     if screen_cap:
-                        s = cohort_term + '-' + end_term + '-' + file_part_skill + "-" + file_part_level + \
-                            '-' + checkboxes + '.png'
-                        driver.save_screenshot(os.path.join(down_college_specific, s))
+                        file_name_screen = core_file_name + '.png'
+                        driver.save_screenshot(os.path.join(down_college_specific, file_name_screen))
 
                     # append level scraped
                     level_scraped.append(file_part_skill + " " + file_part_level)
@@ -1116,16 +1116,10 @@ def _process_expandable(driver, expandables, logger):
     all_locator = "#ASPxRoundPanel3_ASPxPivotGrid1_CVSCell_SCDTable tr:nth-of-type(2) td img"
     all_els = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_locator)))
 
-    if len(expandables) != len(all_els):
-        logger.info('Number of Expand/Collapse Script elements ({}) != Expand/Collapse Web ({})'.
-                    format(len(expand_collapse), len(all_els)))
-        logger.info('Please correct your script and pass in --expand-collapse {} value(s): (0,1) e.g. 00, 01'.format(len(all_els)))
-        raise ExitException('Expand/Collapse Web elements match failed')
-    else:
-        logger.debug('Number of Expand/Collapse Script elements ({}) = Expand/Collapse Web ({})'.
-                    format(len(expand_collapse), len(all_els)))
+    logger.info('Number of Expand/Collapse Script values ({})'.format(len(expandables)))
+    logger.info('Number of Expand/Collapse Web elements({})'.format(len(all_els)))
 
-    for counter, el_ in enumerate(all_els):
+    for counter in range(len(expandables)):
 
         # must get every time as elements
         # change after expand/collapse clicked
@@ -1138,12 +1132,19 @@ def _process_expandable(driver, expandables, logger):
         if class_.count('dxPivotGrid_pgCollapsedButton_Aqua') and expanded:
             el_.click()
             _wait_until_loaded(30, driver)
+            logger.info('Expanded ({})'.format(counter))
         elif class_.count('dxPivotGrid_pgExpandedButton_Aqua') and not expanded:
             el_.click()
             _wait_until_loaded(30, driver)
+            logger.info('Collapsed ({})'.format(counter))
         else:
-            logger.debug('Expand/collapse as default')
+            logger.info('Expand/collapse: ({}) as default'.format(counter))
 
+        if counter + 1 == len(all_):
+            logger.info('All web elements processed')
+            break
+        elif counter + 1 == len(expandables):
+            logger.info('All script values processed')
 
 
 
@@ -1167,7 +1168,7 @@ if __name__ == '__main__':
     cohort_year = 'Select All'
     years_transfer = 'Process All'
     basic_skills_subject = 'Process All'
-    expand_collapse = 'Default'
+    expand_collapse = 'default'
     special_population = 'Select All'
 
     # checkboxed default
