@@ -39,6 +39,9 @@ DOWNLOADED_SPECIAL = 'CourseRetSuccessSummSpecialPop.csv'
 DOWNLOADED_SPECIAL_PARTIAL = 'CourseRetSuccessSummSpecialPop.csv.crdownload'
 DOWNLOADED_SPECIAL_XLSX = 'CourseRetSuccessSummSpecialPop.xlsx'
 
+DOWNLOADED_AWARDS = 'ProgAwardsSumm.csv'
+DOWNLOADED_AWARDS_PARTIAL = 'ProgAwardsSumm.csv.crdownload'
+
 LOGS = os.path.join(FILE_DIR, 'logs')
 SCRAPE_LOG = os.path.join(LOGS, 'scrape.csv')
 
@@ -874,6 +877,190 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
         raise Exception('Failed years 10 times')
 
 
+def scrape_program_awards(college, wait_to_load, screen_cap, driver, convert, search_type, academic_year,
+                            award_type, program_type, checkboxes):
+
+    wait = WebDriverWait(driver, 10)
+    short_wait = WebDriverWait(driver, 2)
+
+    for counter in range(5):
+
+        try:
+            driver.refresh()
+
+            select_search_type(search_type)
+
+            # college
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditDistColl'))).click()
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.dxeListBoxItemRow_Aqua')))
+
+            college_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
+            wait.until(EC.presence_of_element_located((By.ID, college_id)))
+            js_script = "document.getElementById('{}').click();".format(college_id)
+            driver.execute_script(js_script)
+
+            el_id = "ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}T1".format(college)
+            el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
+            college_name = el.text
+
+            # checked - check span.class name
+            el_input_css = "#ASPxRoundPanel1_ASPxDropDownEditDistColl_DDD_DDTC_checkListBoxDistColl_LBI{}C" \
+                           " span.dxWeb_edtCheckBoxChecked_Aqua".format(college)
+            short_wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, el_input_css)))
+
+            if college_name == '':
+                logger.info("College name not picked up.")
+                raise Exception('College name not picked up')
+            else:
+                logger.info("Selected college: ({}): {}".format(college, el.text))
+
+            break
+        except:
+            logger.info('Failed. Retry up to 5 times to select the college --> ({})'.format(counter))
+
+    # create the program awards folder
+    down_college_specific = os.path.join(DOWN_PATH, college_name, 'program awards')
+    if not os.path.isdir(down_college_specific):
+        os.makedirs(down_college_specific)
+        logger.info("Created folder: {}".format(down_college_specific))
+
+    # academic year
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditTerm_B-1'))).click()
+    time.sleep(1)
+
+    all_el = '#ASPxRoundPanel1_ASPxDropDownEditTerm_DDD_DDTC_checkListBoxTerm_LBT tr>td:nth-of-type(2)'
+    all_ = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_el)))
+
+    years_ = [e.text for e in all_]
+    if academic_year not in years_:
+        logger.info("Academic year not found: {}. No data available".format(academic_year))
+        logger.info("Available years:")
+        logger.info(years_)
+        raise ExitException('Academic year not found')
+    else:
+        for counter, year_ in enumerate(years_):
+            if academic_year == year_:
+                logger.info("Academic year found: {}, nth: {}.".format(academic_year, counter + 1))
+                break
+
+    academic_selector = "#ASPxRoundPanel1_ASPxDropDownEditTerm_DDD_DDTC_checkListBoxTerm_LBT tr:nth-of-type({})" \
+                        ">td>span".format(counter + 1)
+
+    js_script = "document.querySelector('{}').click();".format(academic_selector)
+    driver.execute_script(js_script)
+    logger.info("Academic year selected: {}".format(academic_year))
+
+    # award type
+    for ctr_ in range(5):
+
+        try:
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxComboBoxAWType_B-1'))).click()
+            time.sleep(1)
+
+            all_el = '#ASPxRoundPanel1_ASPxComboBoxAWType_DDD_L_LBT tr>td'
+            all_ = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_el)))
+
+            types_ = [e.text for e in all_]
+
+            if types_.count('') > 1:
+                logger.info("Award type not expanded. Blank options")
+                raise
+            elif award_type not in types_:
+                logger.info("Award type not found: {}. No data available".format(academic_year))
+                logger.info("Available types:")
+                logger.info(types_)
+                raise ExitException('Award type not found')
+            else:
+                for counter, type_ in enumerate(types_):
+                    if award_type == type_:
+                        logger.info("Award type found: {}, nth: {}.".format(award_type, counter + 1))
+                        break
+
+            award_type_selector = "#ASPxRoundPanel1_ASPxComboBoxAWType_DDD_L_LBT tr:nth-of-type({})>td".format(counter + 1)
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, award_type_selector))).click()
+            logger.info("Award type selected: {}".format(award_type))
+            break
+        except ExitException:
+            raise ExitException('Award type not found')
+        except:
+            logger.info("Award type not selected. Retry up to 5 times. ({})".ctr_format(ctr_))
+
+    else:
+        logger.info('Failed award type 5 times')
+        raise Exception('Failed award type 5 times')
+
+    # program type
+    js_script = "document.getElementById('ASPxRoundPanel1_ASPxDropDownEditTOP_DDD_DDTC_ASPxCallbackPanel1_ASPxTreeView1_N0_D').click();"
+    driver.execute_script(js_script)
+    logger.info("Program type selected: All Programs")
+
+    # click view report
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
+    js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();"
+    driver.execute_script(js_script)
+    logger.info('View report clicked')
+
+    _wait_until_loaded(wait_to_load, driver)
+    time.sleep(2)
+
+    # -----------------------------------
+    # Checkboxes
+    # -----------------------------------
+
+    # create a True, False list
+    # trim if > required
+    checkboxes = checkboxes[:7]
+    checks = _process_binary(checkboxes)
+    logger.info(checks)
+
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_0', checks[0])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_DCOptions_1', checks[1])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_0', checks[2])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_1', checks[3])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_2', checks[4])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_3', checks[5])
+    _process_individual_checkbox(driver, '#ASPxRoundPanel3_TopOptions_4', checks[6])
+    logger.info('Checkboxes selected')
+
+    # click update report
+    wait.until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '#ASPxRoundPanel3_UpdateReport_CD'))).click()
+    logger.info('Update selected')
+
+    _wait_until_loaded(wait_to_load, driver)
+    time.sleep(2)
+
+    # click csv
+    logger.info('About to click export to csv')
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#listExportFormat_1'))).click()
+    logger.info('Export to csv clicked')
+
+    # click export as
+    logger.info('Click export to csv --> browser starts downloading')
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#buttonSaveAs_CD')),
+               message='element not clickable').click()
+
+    # files
+    # ----------------
+
+    file_name_core = search_type + '-' + academic_year + '-' + award_type + '-' + checkboxes
+    file_name = file_name_core + '.csv'
+    _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED_AWARDS)
+
+    if convert:
+        file_name_xlsx = file_name_core + '.xlsx'
+        _convert_to_xlsx(os.path.join(down_college_specific, file_name),
+                         os.path.join(down_college_specific, file_name_xlsx))
+
+    if screen_cap:
+        s = file_name_core + '.png'
+        driver.save_screenshot(os.path.join(down_college_specific, s))
+
+    return college_name
+
+
+
+
 def select_search_type(_search_type):
 
     wait = WebDriverWait(driver, 10)
@@ -1080,7 +1267,8 @@ def _clean_up():
     # -------------------------------------------------------
 
     files = [DOWNLOADED, DOWNLOADED_PARTIAL, DOWNLOADED_COHORT, DOWNLOADED_COHORT_PARTIAL,
-             DOWNLOADED_TRANSFER, DOWNLOADED_TRANSFER_PARTIAL, DOWNLOADED_SPECIAL, DOWNLOADED_SPECIAL_PARTIAL]
+             DOWNLOADED_TRANSFER, DOWNLOADED_TRANSFER_PARTIAL, DOWNLOADED_SPECIAL,
+             DOWNLOADED_SPECIAL_PARTIAL, DOWNLOADED_AWARDS, DOWNLOADED_AWARDS_PARTIAL]
 
     for clean_file in files:
         if os.path.isfile(os.path.join(DOWN_PATH, clean_file)):
@@ -1170,9 +1358,12 @@ if __name__ == '__main__':
     basic_skills_subject = 'Process All'
     expand_collapse = 'default'
     special_population = 'Select All'
+    academic_year = '(Select All)'
+    award_type = 'All Awards'
+    program_type = 'All Programs'
 
     # checkboxed default
-    # > than max. checboxes on any report
+    # > than max. checkboxes on any report
     checkboxes = "".join("0" for _ in range(20))
 
     console = logging.StreamHandler(stream=sys.stdout)
@@ -1185,7 +1376,8 @@ if __name__ == '__main__':
                                                     'screen-capture', "retry=", "url=", "cohort-term=",
                                                     "end-term=", 'level=', 'convert', 'search-type=',
                                                     "cohort-year=", "years-transfer=", "skills-subject=",
-                                                    "checkboxes=", "expand-collapse=", "special-population="])
+                                                    "checkboxes=", "expand-collapse=", "special-population=",
+                                                    "academic-year=", "award-type="])
     for opt, arg in opts:
         if opt in ("-v", "--verbose"):
             verbose = True
@@ -1209,6 +1401,10 @@ if __name__ == '__main__':
             elif arg == 'retention success':
                 scrape_url = 'http://datamart.cccco.edu/Outcomes/Course_Ret_Success_SP.aspx'
                 scrape_page = 'retention success'
+            elif arg == 'program awards':
+                scrape_url = 'http://datamart.cccco.edu/Outcomes/Program_Awards.aspx'
+                scrape_page = 'program awards'
+
         elif opt in "--cohort-term":
             cohort_term = arg
         elif opt in "--end-term":
@@ -1231,6 +1427,10 @@ if __name__ == '__main__':
             expand_collapse = arg
         elif opt in "--special-population":
             special_population = arg
+        elif opt in "--academic-year":
+            academic_year = arg
+        elif opt in "--award-type":
+            award_type = arg
 
     if log_file:
         log_file = os.path.join(os.path.dirname(__file__), 'logs',
@@ -1544,5 +1744,83 @@ if __name__ == '__main__':
                     _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), result, c, scraped_college])
                     if retry_attempts == retry - 1:
                         _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), 'Failed', c, scraped_college])
+                    driver.close()
+                    driver.quit()
+
+    # ---------------------------------------
+    # program awards
+    # http://datamart.cccco.edu/Outcomes/Program_Awards.aspx
+    # ---------------------------------------
+
+    if scrape_page == 'program awards':
+
+        if search_type not in available_searches:
+            logger.info('Search not found: {}. No data available.'.format(search_type))
+            sys.exit(0)
+
+        driver = get_driver(scrape_url)
+        all_colleges = print_all_colleges(driver, search_type)
+        driver.quit()
+        if print_col:
+            sys.exit(0)
+
+        if college == "all":
+            scr_ = [all_colleges[key] for key in all_colleges]
+        else:
+            try:
+                scr_ = [all_colleges[college]]
+            except KeyError:
+                logger.info('College not found: {}. No data available.'.format(college))
+                sys.exit(0)
+
+        logger.info('Ids to scrape:')
+        logger.info(scr_)
+
+        for c in scr_:
+
+            _write_row(["***********", "***********", "***********", "***********"])
+            _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), "Start", c, ""])
+
+            for retry_attempts in range(retry):
+                try:
+                    _clean_up()
+
+                    driver = get_driver(scrape_url)
+                    driver.set_page_load_timeout(3600)
+
+                    scraped_college = scrape_program_awards(c, wait_to_load, screen_cap, driver, convert, search_type,
+                                                            academic_year, award_type, program_type, checkboxes)
+
+                    logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
+                    result = 'Complete'
+                    break
+                except TimeoutException:
+                    logger.warning('TimeoutException. Retry up to {} times'.format(retry))
+                    logger.debug('err: ', exc_info=True)
+                    result = 'TimeoutException ({})'.format(retry_attempts)
+                except StaleElementReferenceException:
+                    logger.warning('StaleElementReferenceException. Retry up to {} times'.format(retry))
+                    logger.debug('err: ', exc_info=True)
+                    result = 'StaleElementReferenceException ({})'.format(retry_attempts)
+                except UnexpectedAlertPresentException:
+                    logger.warning('UnexpectedAlertPresentException. Retry up to {} times'.format(retry))
+                    logger.info('Possibly no data available for selected filters')
+                    logger.debug('err: ', exc_info=True)
+                    result = 'UnexpectedAlertPresentException ({})'.format(retry_attempts)
+                except ExitException:
+                    logger.info('Data not available for the provided arguments. Exit')
+                    logger.debug('ExitException. Exit')
+                    logger.debug('err: ', exc_info=True)
+                    result = 'ExitException: Data not available'
+                    sys.exit(0)
+                except:
+                    logger.warning('UndefinedException. Retry up to {} times'.format(retry))
+                    logger.debug('err: ', exc_info=True)
+                    result = 'UndefinedException ({})'.format(retry_attempts)
+                finally:
+                    _write_row([time.strftime('%H:%M %d-%m-%Y', time.localtime()), result, c, scraped_college])
+                    if retry_attempts == retry - 1:
+                        _write_row(
+                            [time.strftime('%H:%M %d-%m-%Y', time.localtime()), 'Failed', c, scraped_college])
                     driver.close()
                     driver.quit()
