@@ -119,3 +119,27 @@ retry up 10 times to scrape data and save a screencap right before the export to
 ``` python run.py -c Alameda -u "program awards" --convert --academic-year "Annual 2015-2016" --checkboxes 11111111 ```
 </br>
 ```python run.py -c Alameda -u "program awards" --convert --checkboxes 11111111 --award-type "Chancellor's Office Approved Awards"```
+
+# Scrape program awards special populations:
+## arguments:
+***default - the argument is not passed in*** 
+* -u, --url : program awards population
+* -v, --verbose : to run in the verbose mode (debug logger)
+* -c, --college : pass in a college name e.g. -c Alameda (if not provided, all colleges scraped)
+* -p, --print-college : to print out all available colleges
+* -s, --screen-capture : to save a screenshot of the browser before the csv file is downloaded
+* -r, --retry : to set how many times the script will retry to scrape/download data. (***default*** = 3).
+* --convert :  to create a xlsx file
+* --search-type: set to: "Collegewide Search" (***default***) , "Districtwide Search" or "Statewide Search"
+* --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
+*Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
+* --academic-year e.g. "Annual 2015-2016" (***default*** - (Select All))
+* --award-type: (***default*** - All Awards)
+* --special-population e.g. "CAA - Career Advancement Academy" (***default*** - (Select All))
+*Note: to get all available special populations, pass in a non-existent population e.g. --special-population "Only Print Out"*
+
+## Examples:
+``` python run.py -c Alameda -u "program awards population" --convert --checkboxes 11111111```
+</br>
+``` python run.py -c Alameda -u "program awards population" --convert --academic-year "Annual 2015-2016" --checkboxes 11111111```
+

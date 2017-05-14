@@ -42,6 +42,9 @@ DOWNLOADED_SPECIAL_XLSX = 'CourseRetSuccessSummSpecialPop.xlsx'
 DOWNLOADED_AWARDS = 'ProgAwardsSumm.csv'
 DOWNLOADED_AWARDS_PARTIAL = 'ProgAwardsSumm.csv.crdownload'
 
+DOWNLOADED_AWARDS_SP = 'ProgAwardsSummSP.csv'
+DOWNLOADED_AWARDS_SP_PARTIAL = 'ProgAwardsSummSP.csv.crdownload'
+
 LOGS = os.path.join(FILE_DIR, 'logs')
 SCRAPE_LOG = os.path.join(LOGS, 'scrape.csv')
 
@@ -262,7 +265,7 @@ def scrape_retention_success(college, wait_to_load, screen_cap, driver, convert,
                 nth_to_select = counter
                 logger.info('Special population found: {}'.format(special_population))
 
-        if nth_to_select:
+        if nth_to_select is not None:
             js_script = "document.querySelector('#ASPxRoundPanel1_ASPxDropDownEditSP_DDD_DDTC_checkListBoxSP_D" \
                         " .dxeListBoxItemRow_Aqua:nth-of-type({}) input').click();".format(nth_to_select + 1)
             driver.execute_script(js_script)
@@ -878,7 +881,7 @@ def scrape_transfer(college, wait_to_load, screen_cap, driver, convert, search_t
 
 
 def scrape_program_awards(college, wait_to_load, screen_cap, driver, convert, search_type, academic_year,
-                            award_type, program_type, checkboxes):
+                            award_type, program_type, checkboxes, special_population):
 
     wait = WebDriverWait(driver, 10)
     short_wait = WebDriverWait(driver, 2)
@@ -919,7 +922,12 @@ def scrape_program_awards(college, wait_to_load, screen_cap, driver, convert, se
             logger.info('Failed. Retry up to 5 times to select the college --> ({})'.format(counter))
 
     # create the program awards folder
-    down_college_specific = os.path.join(DOWN_PATH, college_name, 'program awards')
+    if special_population:
+        dest_folder = 'program awards population'
+    else:
+        dest_folder = 'program awards'
+
+    down_college_specific = os.path.join(DOWN_PATH, college_name, dest_folder)
     if not os.path.isdir(down_college_specific):
         os.makedirs(down_college_specific)
         logger.info("Created folder: {}".format(down_college_specific))
@@ -994,6 +1002,46 @@ def scrape_program_awards(college, wait_to_load, screen_cap, driver, convert, se
     driver.execute_script(js_script)
     logger.info("Program type selected: All Programs")
 
+    if special_population:
+
+        for _ in range(5):
+
+            # expand populations
+            wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_ASPxDropDownEditSP_B-1Img'))).click()
+            time.sleep(2)
+
+            all_populations_sel = "#ASPxRoundPanel1_ASPxDropDownEditSP_DDD_DDTC_checkListBoxSP_D .dxeListBoxItemRow_Aqua .dxeT"
+            all_populations = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, all_populations_sel)))
+
+            available_populations = []
+            nth_to_select = None
+
+            logger.info('Available populations:')
+            for counter, pop in enumerate(all_populations[1:]):
+                logger.info(pop.text)
+                available_populations.append(pop.text.strip())
+                if pop.text.strip() == special_population:
+                    nth_to_select = counter
+                    logger.info('Special population found: {}'.format(special_population))
+
+            if nth_to_select is not None:
+                js_script = "document.querySelector('#ASPxRoundPanel1_ASPxDropDownEditSP_DDD_DDTC_checkListBoxSP_LBT" \
+                            " .dxeListBoxItemRow_Aqua:nth-of-type({}) input').click();".format(nth_to_select + 1)
+                driver.execute_script(js_script)
+                logger.info('Special population selected: {}'.format(special_population))
+                break
+
+            if available_populations.count('') > 1:
+                logger.info('Special population not expanded')
+                continue
+            else:
+                logger.info('Did not find program/special population: {}'.format(special_population))
+                raise ExitException('Did not find program/special population')
+        else:
+            logger.info('Failed special population term 5 times')
+            raise Exception('Failed special population term 5 times')
+
     # click view report
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#ASPxRoundPanel1_RunReportASPxButton_CD')))
     js_script = "document.getElementById('ASPxRoundPanel1_RunReportASPxButton_CD').click();"
@@ -1043,9 +1091,15 @@ def scrape_program_awards(college, wait_to_load, screen_cap, driver, convert, se
     # files
     # ----------------
 
-    file_name_core = search_type + '-' + academic_year + '-' + award_type + '-' + checkboxes
+    if special_population:
+        file_name_core = search_type + '-' + academic_year + '-' + award_type + '-' + special_population + '-'+ checkboxes
+        DOWNLOADED = DOWNLOADED_AWARDS_SP
+    else:
+        file_name_core = search_type + '-' + academic_year + '-' + award_type + '-' + checkboxes
+        DOWNLOADED = DOWNLOADED_AWARDS
+
     file_name = file_name_core + '.csv'
-    _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED_AWARDS)
+    _move_file_specific(DOWN_PATH, down_college_specific, file_name, DOWNLOADED)
 
     if convert:
         file_name_xlsx = file_name_core + '.xlsx'
@@ -1057,8 +1111,6 @@ def scrape_program_awards(college, wait_to_load, screen_cap, driver, convert, se
         driver.save_screenshot(os.path.join(down_college_specific, s))
 
     return college_name
-
-
 
 
 def select_search_type(_search_type):
@@ -1268,7 +1320,8 @@ def _clean_up():
 
     files = [DOWNLOADED, DOWNLOADED_PARTIAL, DOWNLOADED_COHORT, DOWNLOADED_COHORT_PARTIAL,
              DOWNLOADED_TRANSFER, DOWNLOADED_TRANSFER_PARTIAL, DOWNLOADED_SPECIAL,
-             DOWNLOADED_SPECIAL_PARTIAL, DOWNLOADED_AWARDS, DOWNLOADED_AWARDS_PARTIAL]
+             DOWNLOADED_SPECIAL_PARTIAL, DOWNLOADED_AWARDS, DOWNLOADED_AWARDS_PARTIAL,
+             DOWNLOADED_AWARDS_SP, DOWNLOADED_AWARDS_SP_PARTIAL]
 
     for clean_file in files:
         if os.path.isfile(os.path.join(DOWN_PATH, clean_file)):
@@ -1361,6 +1414,7 @@ if __name__ == '__main__':
     academic_year = '(Select All)'
     award_type = 'All Awards'
     program_type = 'All Programs'
+    special_population_awards = '(Select All)'
 
     # checkboxed default
     # > than max. checkboxes on any report
@@ -1404,6 +1458,10 @@ if __name__ == '__main__':
             elif arg == 'program awards':
                 scrape_url = 'http://datamart.cccco.edu/Outcomes/Program_Awards.aspx'
                 scrape_page = 'program awards'
+                special_population_awards = None
+            elif arg == 'program awards population':
+                scrape_url = 'http://datamart.cccco.edu/Outcomes/Program_Awards_SP.aspx'
+                scrape_page = 'program awards population'
 
         elif opt in "--cohort-term":
             cohort_term = arg
@@ -1427,6 +1485,7 @@ if __name__ == '__main__':
             expand_collapse = arg
         elif opt in "--special-population":
             special_population = arg
+            special_population_awards = arg
         elif opt in "--academic-year":
             academic_year = arg
         elif opt in "--award-type":
@@ -1750,9 +1809,12 @@ if __name__ == '__main__':
     # ---------------------------------------
     # program awards
     # http://datamart.cccco.edu/Outcomes/Program_Awards.aspx
+    #
+    # program awards population
+    # http://datamart.cccco.edu/Outcomes/Program_Awards_SP.aspx
     # ---------------------------------------
 
-    if scrape_page == 'program awards':
+    if scrape_page == 'program awards' or scrape_page == 'program awards population':
 
         if search_type not in available_searches:
             logger.info('Search not found: {}. No data available.'.format(search_type))
@@ -1789,7 +1851,8 @@ if __name__ == '__main__':
                     driver.set_page_load_timeout(3600)
 
                     scraped_college = scrape_program_awards(c, wait_to_load, screen_cap, driver, convert, search_type,
-                                                            academic_year, award_type, program_type, checkboxes)
+                                                            academic_year, award_type, program_type, checkboxes,
+                                                            special_population_awards)
 
                     logger.info('Complete for college no.{} --> {}'.format(c, scraped_college))
                     result = 'Complete'
