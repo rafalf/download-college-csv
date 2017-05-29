@@ -1297,6 +1297,9 @@ def print_all_colleges(driver, _search_type):
             time.sleep(3)
             all_coll = driver.find_elements_by_css_selector('#ASPxRoundPanel1_ASPxDropDownEditDistColl_'
                                                             'DDD_DDTC_checkListBoxDistColl_LBT .dxeListBoxItemRow_Aqua')
+            if len(all_coll) == 0:
+                raise
+
             break
         except:
             logger.info('Failed. Will retry up to 5 times to get colleges --> ({})'.format(counter))
