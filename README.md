@@ -156,10 +156,10 @@ retry up 10 times to scrape data and save a screencap right before the export to
 * -u, --url : set to: "student success" (or don't pass in as it's set by ***default***)
 * --term : set to e.g. Fall 2016 (***default: (Select All)***)
 * --search-type: set to: "Collegewide Search" (***default***) , "Districtwide Search" or "Statewide Search"
-* --checkboxes: whether to select checkboxes or not (***default*** - 000000000000000 - all unchecked)
+* --checkboxes: whether to select checkboxes or not (***default*** - 00000 - all unchecked)
 *Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
 
 ## Examples:
-```python run.py -u "student success" -c Alameda --convert --checkboxes 11111``` (_Times out for all_)
+```python run.py -u "student success" -c Alameda --convert --checkboxes 11111``` (_Times out for all terms_)
 </br>
 ```python run.py -u "student success" -c Alameda --convert --term "Fall 2016"```
