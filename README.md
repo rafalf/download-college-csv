@@ -163,3 +163,24 @@ retry up 10 times to scrape data and save a screencap right before the export to
 ```python run.py -u "student success" -c Alameda --convert --checkboxes 11111``` (_Times out for all terms_)
 </br>
 ```python run.py -u "student success" -c Alameda --convert --term "Fall 2016"```
+
+# Scrape enrollment status:
+## arguments:
+***default - the argument is not passed in*** 
+
+* -v, --verbose : to run in the verbose mode (debug logger)
+* -c, --college : pass in a college name e.g. -c Alameda (if not provided, all colleges scraped)
+* -p, --print-college : to print out all available colleges
+* -s, --screen-capture : to save a screenshot of the browser before the csv file is downloaded
+* -r, --retry : to set how many times the script will retry to scrape/download data. (***default*** = 3).
+* --convert :  to create a xlsx file
+* -u, --url : set to: "enrollment status" (or don't pass in as it's set by ***default***)
+* --term : set to e.g. Fall 2016 (***default: (Select All)***)
+* --search-type: set to: "Collegewide Search" (***default***) , "Districtwide Search" or "Statewide Search"
+* --checkboxes: whether to select checkboxes or not (***default*** - 000000 - all unchecked)
+*Note: as 0 means not selected, the script will uncheck the checkbox even if is selected by default*
+
+## Examples:
+```python run.py -u "enrollment status" -c Alameda --convert --checkboxes 111111``` (_Times out for all terms_)
+</br>
+```python run.py -u "enrollment status" -c Alameda --convert --term "Fall 2016" --checkboxes 111111```
