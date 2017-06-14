@@ -184,3 +184,13 @@ retry up 10 times to scrape data and save a screencap right before the export to
 ```python run.py -u "enrollment status" -c Alameda --convert --checkboxes 111111``` (_Times out for all terms_)
 </br>
 ```python run.py -u "enrollment status" -c Alameda --convert --term "Fall 2016" --checkboxes 111111```
+
+***
+***
+# BASELINE
+***
+***
+
+# Baseline course success
+
+```python baseline.py -u "course success"```
